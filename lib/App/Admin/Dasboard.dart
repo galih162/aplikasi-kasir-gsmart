@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gs_mart_aplikasi/screens/home.dart';
-import 'package:gs_mart_aplikasi/App/Admin/pengguna.dart';
+import 'pengguna.dart';
 
 class DashboardPage extends StatefulWidget {
   final dynamic user; // Sesuaikan tipe data dengan model User Anda
@@ -22,7 +22,7 @@ class _DashboardPageState extends State<DashboardPage> {
     
     switch (index) {
       case 0:
-        // Dashboard - tetap di halaman ini
+        
         break;
       case 1:
         Navigator.push(

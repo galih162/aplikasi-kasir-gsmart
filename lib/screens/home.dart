@@ -433,7 +433,8 @@ class _KasirDashboardState extends State<KasirDashboard> {
 
     return Scaffold(
         backgroundColor: Colors.white,
-        appBar: _buildAppBar(), 
+        appBar: _buildAppBar(
+        ), 
         body: _buildBody(), 
         bottomNavigationBar: BottomNavigationBar(
   currentIndex: selectedBottomIndex,
@@ -504,6 +505,7 @@ class _KasirDashboardState extends State<KasirDashboard> {
       return AppBar(
         backgroundColor: primaryColor,
         elevation: 0,
+        leading:Container(),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),

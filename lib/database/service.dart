@@ -60,101 +60,96 @@ class UserModel {
 class AuthService {
   final SupabaseClient _supabase = SupabaseConfig.client;
 
- Future<Map<String, dynamic>> loginUser({
-  required final String email, 
-  required final String password
-}) async {
-  try {
-    final cleanEmail = email.trim().toLowerCase();
-    final cleanPassword = password.trim();
+  Future<Map<String, dynamic>> loginUser(
+      {required final String email, required final String password}) async {
+    try {
+      final cleanEmail = email.trim().toLowerCase();
+      final cleanPassword = password.trim();
 
-    debugPrint('🔐 ATTEMPTING LOGIN: $cleanEmail');
+      debugPrint('🔐 ATTEMPTING LOGIN: $cleanEmail');
 
-    // 1. Login via Supabase Auth
-    final response = await _supabase.auth
-        .signInWithPassword(email: cleanEmail, password: cleanPassword);
+      // 1. Login via Supabase Auth
+      final response = await _supabase.auth
+          .signInWithPassword(email: cleanEmail, password: cleanPassword);
 
-    if (response.user == null) {
-      return {'success': false, 'message': 'Login gagal'};
-    }
+      if (response.user == null) {
+        return {'success': false, 'message': 'Login gagal'};
+      }
 
-    debugPrint('📨 AUTH RESPONSE: SUCCESS');
-    debugPrint('👤 USER: ${response.user!.email}');
-    debugPrint('🆔 AUTH ID: ${response.user!.id}');
+      debugPrint('📨 AUTH RESPONSE: SUCCESS');
+      debugPrint('👤 USER: ${response.user!.email}');
+      debugPrint('🆔 AUTH ID: ${response.user!.id}');
 
-    final userId = response.user!.id;
+      final userId = response.user!.id;
 
-    // 2. Get user data - PAKAI 'id' BUKAN 'auth_id'
-    Map<String, dynamic>? userData;
-    
-    userData = await _supabase
-        .from('users')
-        .select()
-        .eq('email', cleanEmail)
-        .maybeSingle();
+      // 2. Get user data - PAKAI 'id' BUKAN 'auth_id'
+      Map<String, dynamic>? userData;
 
-    debugPrint('🔍 QUERY: SELECT * FROM users WHERE id = $userId');
-    debugPrint('📊 USER DATA RESULT: ${userData != null ? "FOUND" : "NOT FOUND"}');
-
-    // 3. JIKA TIDAK DITEMUKAN, COBA CARI DENGAN auth_id
-    if (userData == null) {
-      debugPrint('🔄 TRYING WITH auth_id...');
       userData = await _supabase
           .from('users')
           .select()
-          .eq('auth_id', userId)  // 👈 COBA DENGAN auth_id
+          .eq('email', cleanEmail)
           .maybeSingle();
-          
-      debugPrint('🔍 QUERY: SELECT * FROM users WHERE auth_id = $userId');
-      debugPrint('📊 USER DATA RESULT (auth_id): ${userData != null ? "FOUND" : "NOT FOUND"}');
+
+      debugPrint('🔍 QUERY: SELECT * FROM users WHERE id = $userId');
+      debugPrint(
+          '📊 USER DATA RESULT: ${userData != null ? "FOUND" : "NOT FOUND"}');
+
+      // 3. JIKA TIDAK DITEMUKAN, COBA CARI DENGAN auth_id
+      if (userData == null) {
+        debugPrint('🔄 TRYING WITH auth_id...');
+        userData = await _supabase
+            .from('users')
+            .select()
+            .eq('auth_id', userId) // 👈 COBA DENGAN auth_id
+            .maybeSingle();
+
+        debugPrint('🔍 QUERY: SELECT * FROM users WHERE auth_id = $userId');
+        debugPrint(
+            '📊 USER DATA RESULT (auth_id): ${userData != null ? "FOUND" : "NOT FOUND"}');
+      }
+
+      // 4. JIKA MASIH TIDAK DITEMUKAN, BUAT OTOMATIS
+      if (userData == null) {
+        debugPrint('🆕 USER NOT FOUND, CREATING IN PUBLIC.USERS...');
+
+        userData = {
+          'id': userId,
+          'email': cleanEmail,
+          'nama': cleanEmail.split('@')[0],
+          'jabatan': 'kasir',
+          'is_active': true,
+          'auth_id': userId,
+        };
+
+        await _supabase.from('users').insert(userData);
+        debugPrint('✅ AUTO-CREATED USER IN PUBLIC.USERS');
+
+        // Ambil data yang baru dibuat
+        userData =
+            await _supabase.from('users').select().eq('id', userId).single();
+      }
+
+      debugPrint('📊 USER DATA: $userData');
+      debugPrint('👤 USER STATUS: ${userData['is_active']}');
+
+      if (userData['is_active'] == false) {
+        await _supabase.auth.signOut();
+        return {'success': false, 'message': 'Akun tidak aktif'};
+      }
+
+      await _saveUserToPrefs(response.user!);
+      final user = UserModel.fromJson(userData);
+
+      debugPrint('🎉 LOGIN SUCCESSFUL: ${user.email}');
+      debugPrint('👤 USER ROLE: ${user.jabatan}');
+      return {'success': true, 'message': 'Login berhasil', 'user': user};
+    } catch (e) {
+      debugPrint('💥 LOGIN ERROR: $e');
+      return {'success': false, 'message': _getErrorMessage(e)};
     }
-
-    // 4. JIKA MASIH TIDAK DITEMUKAN, BUAT OTOMATIS
-    if (userData == null) {
-      debugPrint('🆕 USER NOT FOUND, CREATING IN PUBLIC.USERS...');
-      
-      userData = {
-        'id': userId,
-        'email': cleanEmail,
-        'nama': cleanEmail.split('@')[0],
-        'jabatan': 'kasir',
-        'is_active': true,
-        'auth_id': userId,
-      };
-
-      await _supabase.from('users').insert(userData);
-      debugPrint('✅ AUTO-CREATED USER IN PUBLIC.USERS');
-      
-      // Ambil data yang baru dibuat
-      userData = await _supabase
-          .from('users')
-          .select()
-          .eq('id', userId)
-          .single();
-    }
-
-    debugPrint('📊 USER DATA: $userData');
-    debugPrint('👤 USER STATUS: ${userData['is_active']}');
-
-    if (userData['is_active'] == false) {
-      await _supabase.auth.signOut();
-      return {
-        'success': false,
-        'message': 'Akun tidak aktif'
-      };
-    }
-
-    await _saveUserToPrefs(response.user!);
-    final user = UserModel.fromJson(userData);
-
-    debugPrint('🎉 LOGIN SUCCESSFUL: ${user.email}');
-    debugPrint('👤 USER ROLE: ${user.jabatan}');
-    return {'success': true, 'message': 'Login berhasil', 'user': user};
-  } catch (e) {
-    debugPrint('💥 LOGIN ERROR: $e');
-    return {'success': false, 'message': _getErrorMessage(e)};
   }
-}
+
   Future<void> logout() async {
     await _supabase.auth.signOut();
     final prefs = await SharedPreferences.getInstance();
@@ -172,6 +167,7 @@ class AuthService {
       debugPrint('❌ ERROR Saat simpan data: $e');
     }
   }
+
   String _getErrorMessage(dynamic error) {
     if (error is AuthException) {
       if (error.message.contains('Invalid login credentials')) {
@@ -184,13 +180,10 @@ class AuthService {
         return 'Email sudah terdaftar';
       }
     }
-    
+
     // Default error message
     return 'Terjadi kesalahan: ${error.toString()}';
   }
-
-
-
 
   Future<UserModel?> getCurrentUser() async {
     try {
@@ -218,37 +211,6 @@ class AuthService {
       return null;
     }
   }
-
-  Future<Map<String, dynamic>> registerKasir({
-    required final String email,
-    required final String password,
-    required final String nama,
-  }) async {
-    try {
-      final authResponse =
-          await _supabase.auth.signUp(email: email, password: password);
-
-      if (authResponse.user == null) {
-        return {'success': false, 'message': 'Gagal membuat akun'};
-      }
-
-      await _supabase.from('users').insert({
-        'id': authResponse.user!.id,
-        'email': email,
-        'nama': nama,
-        'jabatan': 'kasir',
-        'is_active': true,
-        'auth_id': authResponse.user!.id,
-      });
-
-      return {'success': true, 'message': 'Kasir berhasil didaftarkan'};
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Gagal mendaftarkan kasir: ${e.toString()}'
-      };
-    }
-  }
 }
 
 class UserService {
@@ -272,70 +234,88 @@ class UserService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getAllUsers() async {
-    try {
-      final response = await _client
-          .from('users')
-          .select('id, email, nama, jabatan, is_active, created_at')
-          .order('created_at', ascending: false);
-
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      debugPrint('Error get all users: $e');
-      rethrow;
-    }
+  Stream<List<Map<String, dynamic>>> getAllUsers() {
+    return _client
+        .from('users')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .map((data) => List<Map<String, dynamic>>.from(data));
   }
+
 
   Future<Map<String, dynamic>> createUser({
-  required String email,
-  required String password,
-  required String nama,
-  required String jabatan,
-}) async {
-  try {
-    debugPrint('🔧 CREATING USER: $email with role: $jabatan');
+    required String email,
+    required String password,
+    required String nama,
+    required String jabatan,
+  }) async {
+    try {
+      debugPrint('🔧 CREATING USER: $email with role: $jabatan');
 
-    // 1. Sign up dengan metadata
-    final authResponse = await _client.auth.signUp(
-      email: email.trim(),
-      password: password,
-      data: {  // 👈 INI YANG PENTING!
-        'nama': nama,
-        'jabatan': jabatan,
-      },
-    );
+      // 1. Buat user di auth
+      final authResponse = await _client.auth.signUp(
+        email: email.trim(),
+        password: password,
+        data: {
+          'nama': nama,
+          'jabatan': jabatan,
+        },
+      );
 
-    if (authResponse.user == null) {
-      return {'success': false, 'message': 'Gagal membuat user auth'};
+      if (authResponse.user == null) {
+        return {'success': false, 'message': 'Gagal membuat user auth'};
+      }
+
+      final userId = authResponse.user!.id;
+      debugPrint('✅ Auth user created with ID: $userId');
+      final userData = await _client
+          .from('users')
+          .insert({
+            'id': userId, // Primary key
+            'auth_id': userId, // Foreign key ke auth.users
+            'email': email.trim(),
+            'nama': nama,
+            'jabatan': jabatan,
+            'is_active': true,
+          })
+          .select()
+          .single();
+
+      debugPrint('✅ User successfully inserted into users table');
+
+      return {
+        'success': true,
+        'message': 'User berhasil dibuat',
+        'user_id': userId,
+        'user_data': userData,
+      };
+    } catch (e) {
+      debugPrint('❌ CREATE USER ERROR: $e');
+
+      // Handle duplicate user error
+      if (e
+          .toString()
+          .contains('duplicate key value violates unique constraint')) {
+        return {
+          'success': false,
+          'message': 'User dengan email tersebut sudah ada'
+        };
+      }
+
+      return {
+        'success': false,
+        'message': 'Gagal membuat user: ${e.toString()}',
+      };
     }
-
-    final userId = authResponse.user!.id;
-    debugPrint('✅ AUTH USER CREATED: $userId');
-    final userCheck = await _client
-        .from('users')
-        .select()
-        .eq('auth_id', userId)
-        .maybeSingle();
-
-    if (userCheck == null) {
-      return {'success': false, 'message': 'User gagal dibuat di public.users'};
-    }
-
-    debugPrint('✅ USER CREATED IN PUBLIC.USERS: $email');
-
-    return {
-      'success': true,
-      'message': 'User berhasil dibuat',
-      'user_id': userId,
-    };
-  } catch (e) {
-    debugPrint('❌ CREATE USER ERROR: $e');
-    return {
-      'success': false,
-      'message': 'Gagal membuat user: ${e.toString()}',
-    };
   }
-}
+
+  Stream<List<Map<String, dynamic>>> getAllUsersStream() {
+    return _client
+        .from('users')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .map((data) => List<Map<String, dynamic>>.from(data));
+  }
 
   Future<Map<String, dynamic>> updateUser({
     required final String userId,
@@ -782,7 +762,6 @@ class TransactionService {
     }
   }
 }
-
 class CustomerService {
   final SupabaseClient _client = SupabaseConfig.client;
 
@@ -800,26 +779,31 @@ class CustomerService {
     }
   }
 
+  // Tambahkan method ini untuk mengatasi error
+  Stream<List<Map<String, dynamic>>> getAllCustomersStream() {
+    return _client
+        .from('pelanggan')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .map((data) => List<Map<String, dynamic>>.from(data));
+  }
+
   Future<Map<String, dynamic>> createCustomer({
-    required final String nama,
-    required final String noTelepon,
-    final String? alamat,
-    final String? email,
+    required String nama,
+    required String noTelepon,
+    String? alamat,
+    String? email,
   }) async {
     try {
       final currentUser = _client.auth.currentUser;
 
-      final response = await _client
-          .from('pelanggan')
-          .insert({
-            'nama': nama,
-            'no_telepon': noTelepon,
-            'alamat': alamat,
-            'email': email,
-            'created_by': currentUser?.id,
-          })
-          .select()
-          .single();
+      final response = await _client.from('pelanggan').insert({
+        'nama': nama,
+        'no_telepon': noTelepon,
+        'alamat': alamat,
+        'email': email,
+        'created_by': currentUser?.id,
+      }).select().single();
 
       return {
         'success': true,
@@ -827,10 +811,73 @@ class CustomerService {
         'customer_id': response['id'],
       };
     } catch (e) {
-      return {
-        'success': false,
-        'message': 'Gagal menambah pelanggan: ${e.toString()}',
-      };
+      return {'success': false, 'message': 'Gagal menambah pelanggan: ${e.toString()}'};
+    }
+  }
+
+  Future<Map<String, dynamic>> updateCustomer({
+    required String customerId,
+    required String nama,
+    required String noTelepon,
+    String? alamat,
+    String? email,
+  }) async {
+    try {
+      final result = await _client
+          .from('pelanggan')
+          .update({
+            'nama': nama,
+            'no_telepon': noTelepon,
+            'alamat': alamat,
+            'email': email,
+            'updated_at': DateTime.now().toIso8601String(),
+            'updated_by': _client.auth.currentUser?.id,
+          })
+          .eq('id', customerId)
+          .select()
+          .single();
+
+      if (result.isEmpty) {
+        return {'success': false, 'message': 'Pelanggan tidak ditemukan'};
+      }
+
+      return {'success': true, 'message': 'Pelanggan berhasil diupdate'};
+    } catch (e) {
+      debugPrint('❌ Update customer error: $e');
+      return {'success': false, 'message': 'Gagal update pelanggan: ${e.toString()}'};
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteCustomer(String customerId) async {
+    try {
+      // Pertama cek apakah pelanggan digunakan dalam transaksi
+      final usageCheck = await _client
+          .from('penjualan')
+          .select('id')
+          .eq('pelanggan_id', customerId);
+
+      if (usageCheck.isNotEmpty) {
+        return {
+          'success': false, 
+          'message': 'Pelanggan tidak dapat dihapus karena masih digunakan dalam transaksi'
+        };
+      }
+
+      // Jika tidak digunakan dalam transaksi, lakukan delete
+      final result = await _client
+          .from('pelanggan')
+          .delete()
+          .eq('id', customerId)
+          .select();
+
+      if (result.isEmpty) {
+        return {'success': false, 'message': 'Pelanggan tidak ditemukan atau gagal dihapus'};
+      }
+
+      return {'success': true, 'message': 'Pelanggan berhasil dihapus'};
+    } catch (e) {
+      debugPrint('❌ Delete customer error: $e');
+      return {'success': false, 'message': 'Gagal menghapus pelanggan: ${e.toString()}'};
     }
   }
 }
@@ -1008,51 +1055,5 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
-  }
-
-  Future<bool> registerKasir({
-    required String email,
-    required String password,
-    required String nama,
-  }) async {
-    if (!isAdmin) {
-      _errorMessage = 'Hanya admin yang dapat mendaftarkan kasir';
-      notifyListeners();
-      return false;
-    }
-
-    if (_isLoading) return false;
-
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      final result = await _authService.registerKasir(
-          email: email.trim(), password: password, nama: nama.trim());
-
-      _errorMessage = result['success'] ? null : result['message'];
-
-      _isLoading = false;
-      notifyListeners();
-      return result['success'];
-    } catch (e) {
-      _errorMessage = 'Registration error: ${e.toString()}';
-
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  void clearError() {
-    _errorMessage = null;
-    notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _isInitialized = false;
-    super.dispose();
   }
 }

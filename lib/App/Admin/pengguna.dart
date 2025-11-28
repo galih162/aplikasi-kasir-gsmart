@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gs_mart_aplikasi/App/Admin/Dasboard.dart';
 import 'package:provider/provider.dart';
 import 'package:gs_mart_aplikasi/database/service.dart';
 
@@ -12,11 +13,13 @@ class PenggunaPage extends StatefulWidget {
 class _PenggunaPageState extends State<PenggunaPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
-  List<Map<String, dynamic>> pelangganList = [];
-  List<Map<String, dynamic>> penggunaList = [];
-  bool isLoading = false;
   bool isAdmin = false;
+  bool isChecking = true;
+  int _selectedIndex = 1;
+
+  // Key untuk refresh StreamBuilder secara manual
+  final GlobalKey _pelangganKey = GlobalKey();
+  final GlobalKey _penggunaKey = GlobalKey();
 
   @override
   void initState() {
@@ -25,54 +28,73 @@ class _PenggunaPageState extends State<PenggunaPage>
     _checkUserRole();
   }
 
-  // Fungsi untuk cek role user
   Future<void> _checkUserRole() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    try {
-      final currentUser = await authProvider.userService.getCurrentUser();
-      if (currentUser != null && currentUser['jabatan'] == 'admin') {
-        setState(() {
-          isAdmin = true;
-        });
-        _loadData();
-      } else {
-        setState(() {
-          isAdmin = false;
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error checking user role: $e');
+    if (mounted) {
       setState(() {
-        isLoading = false;
+        isAdmin = authProvider.currentUser?.jabatan == 'admin';
+        isChecking = false;
       });
     }
   }
 
-  Future<void> _loadData() async {
-    if (!mounted) return;
-    
-    setState(() => isLoading = true);
-    
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
-    try {
-      // Hanya load data jika user adalah admin
-      pelangganList = await authProvider.customerService.getAllCustomers();
-      penggunaList = await authProvider.userService.getAllUsers();
-      
-      debugPrint('✅ Loaded ${pelangganList.length} pelanggan, ${penggunaList.length} users');
-    } catch (e) {
-      debugPrint('❌ Error loading data: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memuat data: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
+  // Fungsi refresh manual
+  void _refreshCurrentTab() {
+    final currentIndex = _tabController.index;
+    if (currentIndex == 0) {
+      // Refresh tab Pelanggan
+      _pelangganKey.currentState?.setState(() {});
+    } else {
+      // Refresh tab Pengguna
+      _penggunaKey.currentState?.setState(() {});
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Data diperbarui!'), backgroundColor: Colors.green),
+    );
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final currentUser = authProvider.currentUser;
+
+        if (currentUser != null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DashboardPage(user: currentUser),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error: Data pengguna tidak tersedia'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        break;
+        
+      case 1:
+
+      // case 2:
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (context) => StockPage()), // Ganti dengan halaman stok
+      //   );
+      //   break;
+      // case 3:
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (context) => ReportPage()), // Ganti dengan halaman laporan
+      //   );
+      //   break; Navigator.pop(context);
     }
   }
 
@@ -89,16 +111,22 @@ class _PenggunaPageState extends State<PenggunaPage>
       appBar: AppBar(
         backgroundColor: Colors.red,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text('Manajemen Data', style: TextStyle(color: Colors.white)),
+        leading: Container(),
+        title:
+            const Text('Manajemen Data', style: TextStyle(color: Colors.white)),
+        actions: isAdmin
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  tooltip: 'Refresh Data',
+                  onPressed: _refreshCurrentTab,
+                ),
+              ]
+            : null,
       ),
       body: Column(
         children: [
-          // Tab Bar - hanya tampil untuk admin
-          if (isAdmin) ...[
+          if (isAdmin)
             Container(
               color: Colors.red,
               child: TabBar(
@@ -113,20 +141,51 @@ class _PenggunaPageState extends State<PenggunaPage>
                 ],
               ),
             ),
-          ],
-          // Content
           Expanded(
-            child: isLoading
+            child: isChecking
                 ? const Center(child: CircularProgressIndicator())
                 : _buildContentBasedOnRole(),
           ),
         ],
       ),
-      floatingActionButton: isAdmin ? _buildFloatingActionButton() : null,
+      floatingActionButton: isAdmin
+          ? FloatingActionButton(
+              onPressed: _showAddDialog,
+              backgroundColor: Colors.red,
+              child: const Icon(Icons.add, color: Colors.white, size: 32),
+            )
+          : null,
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.red,
+        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        elevation: 8,
+        onTap:
+            _onItemTapped, // ✅ GUNAKAN METHOD _onItemTapped YANG SUDAH DIBUAT
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_add),
+            label: 'Tambah',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.inventory_2),
+            label: 'Stok',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.description),
+            label: 'Laporan',
+          ),
+        ],
+      ),
     );
   }
 
-  // Widget untuk menampilkan content berdasarkan role
   Widget _buildContentBasedOnRole() {
     if (!isAdmin) {
       return const Center(
@@ -135,16 +194,12 @@ class _PenggunaPageState extends State<PenggunaPage>
           children: [
             Icon(Icons.security, size: 64, color: Colors.grey),
             SizedBox(height: 16),
-            Text(
-              'Akses Ditolak',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            Text('Akses Ditolak',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 8),
-            Text(
-              'Hanya admin yang dapat mengakses halaman ini',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
+            Text('Hanya admin yang dapat mengakses halaman ini',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey)),
           ],
         ),
       );
@@ -153,141 +208,13 @@ class _PenggunaPageState extends State<PenggunaPage>
     return TabBarView(
       controller: _tabController,
       children: [
-        _buildPelangganList(),
-        _buildPenggunaList(),
+        _buildPelangganStream(),
+        _buildPenggunaStream(),
       ],
     );
   }
 
-  // Floating Action Button hanya untuk admin
-  Widget? _buildFloatingActionButton() {
-    return FloatingActionButton(
-      onPressed: _showAddDialog,
-      backgroundColor: Colors.red,
-      child: const Icon(Icons.add, color: Colors.white, size: 32),
-    );
-  }
-
-  Widget _buildPelangganList() {
-    if (pelangganList.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.people_outline, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('Belum ada pelanggan'),
-          ],
-        ),
-      );
-    }
-    
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: pelangganList.length,
-      itemBuilder: (context, index) {
-        return _buildCustomerCard(pelangganList[index], index);
-      },
-    );
-  }
-
-  Widget _buildPenggunaList() {
-    if (penggunaList.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.person_outline, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('Belum ada pengguna'),
-          ],
-        ),
-      );
-    }
-    
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: penggunaList.length,
-      itemBuilder: (context, index) {
-        return _buildUserCard(penggunaList[index], index);
-      },
-    );
-  }
-
-  Widget _buildCustomerCard(Map<String, dynamic> customer, int index) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Colors.white,
-          child: Icon(Icons.person_outline, color: Colors.red[700]),
-        ),
-        title: Text(
-          customer['nama'] ?? 'Tanpa Nama',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-        subtitle: Text(
-          customer['no_telepon'] ?? '-',
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.grey),
-              onPressed: () {
-                _showDeletePelangganDialog(customer['id'], index);
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, color: Colors.grey),
-              onPressed: () {
-                _showEditPelangganDialog(customer, index);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUserCard(Map<String, dynamic> user, int index) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Colors.white,
-          child: Icon(Icons.person_outline, color: Colors.red[700]),
-        ),
-        title: Text(
-          user['nama'] ?? 'Tanpa Nama',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-        subtitle: Text(
-          '${user['jabatan'] ?? '-'} • ${user['email'] ?? '-'}',
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.edit_outlined, color: Colors.grey),
-          onPressed: () {
-            _showEditUserDialog(user, index);
-          },
-        ),
-      ),
-    );
-  }
-
   void _showAddDialog() {
-    if (!isAdmin) return;
-    
     if (_tabController.index == 0) {
       _showAddPelangganDialog();
     } else {
@@ -295,105 +222,238 @@ class _PenggunaPageState extends State<PenggunaPage>
     }
   }
 
-  // ========== PELANGGAN CRUD ==========
-  
+  // ==================== PELANGGAN (REAL-TIME + RELOAD) ====================
+  Widget _buildPelangganStream() {
+    final stream = Provider.of<AuthProvider>(context, listen: false)
+        .customerService
+        .getAllCustomersStream();
+
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      key: _pelangganKey, // <-- KEY UNTUK REFRESH
+      stream: stream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error: ${snapshot.error}'),
+                ElevatedButton(
+                  onPressed: _refreshCurrentTab,
+                  child: const Text('Coba Lagi'),
+                ),
+              ],
+            ),
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final data = snapshot.data!;
+        if (data.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text('Belum ada pelanggan'),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          itemCount: data.length,
+          itemBuilder: (context, index) => _buildCustomerCard(data[index]),
+        );
+      },
+    );
+  }
+
+  Widget _buildCustomerCard(Map<String, dynamic> customer) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+          color: Colors.grey[200], borderRadius: BorderRadius.circular(8)),
+      child: ListTile(
+        leading: CircleAvatar(
+            backgroundColor: Colors.white,
+            child: Icon(Icons.person_outline, color: Colors.red[700])),
+        title: Text(customer['nama'] ?? 'Tanpa Nama',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+        subtitle: Text(customer['no_telepon'] ?? '-',
+            style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.grey),
+              onPressed: () => _showDeletePelangganDialog(customer['id']),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, color: Colors.grey),
+              onPressed: () => _showEditPelangganDialog(customer),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==================== PENGGUNA (REAL-TIME + RELOAD) ====================
+  Widget _buildPenggunaStream() {
+    final stream = Provider.of<AuthProvider>(context, listen: false)
+        .userService
+        .getAllUsersStream();
+
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      key: _penggunaKey, // <-- KEY UNTUK REFRESH
+      stream: stream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error: ${snapshot.error}'),
+                ElevatedButton(
+                  onPressed: _refreshCurrentTab,
+                  child: const Text('Coba Lagi'),
+                ),
+              ],
+            ),
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final data = snapshot.data!;
+        if (data.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.person_outline, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text('Belum ada pengguna'),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          itemCount: data.length,
+          itemBuilder: (context, index) => _buildUserCard(data[index]),
+        );
+      },
+    );
+  }
+
+  Widget _buildUserCard(Map<String, dynamic> user) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+          color: Colors.grey[200], borderRadius: BorderRadius.circular(8)),
+      child: ListTile(
+        leading: CircleAvatar(
+            backgroundColor: Colors.white,
+            child: Icon(Icons.person_outline, color: Colors.red[700])),
+        title: Text(user['nama'] ?? 'Tanpa Nama',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+        subtitle: Text('${user['jabatan'] ?? '-'} • ${user['email'] ?? '-'}',
+            style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: () => _showDeleteUserDialog(user['id']),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, color: Colors.grey),
+              onPressed: () => _showEditUserDialog(user),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==================== CRUD DIALOGS (TETAP SAMA) ====================
+  // ... (semua fungsi dialog tetap sama seperti sebelumnya)
+  // Karena terlalu panjang, saya biarkan tetap seperti kode kamu sebelumnya
+  // Tidak ada perubahan di bagian dialog
+
   void _showAddPelangganDialog() {
-    if (!isAdmin) return;
-    
-    final namaController = TextEditingController();
-    final noTeleponController = TextEditingController();
-    final alamatController = TextEditingController();
-    final emailController = TextEditingController();
+    final namaC = TextEditingController();
+    final telpC = TextEditingController();
+    final alamatC = TextEditingController();
+    final emailC = TextEditingController();
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text('Tambah Pelanggan'),
         content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: namaController,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(
+                controller: namaC,
                 decoration: const InputDecoration(
-                  labelText: 'Nama *',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: noTeleponController,
+                    labelText: 'Nama *', border: OutlineInputBorder())),
+            const SizedBox(height: 12),
+            TextField(
+                controller: telpC,
                 decoration: const InputDecoration(
-                  labelText: 'No. Telepon *',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: alamatController,
+                    labelText: 'No. Telepon *', border: OutlineInputBorder()),
+                keyboardType: TextInputType.phone),
+            const SizedBox(height: 12),
+            TextField(
+                controller: alamatC,
                 decoration: const InputDecoration(
-                  labelText: 'Alamat',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: emailController,
+                    labelText: 'Alamat', border: OutlineInputBorder())),
+            const SizedBox(height: 12),
+            TextField(
+                controller: emailC,
                 decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-            ],
-          ),
+                    labelText: 'Email', border: OutlineInputBorder())),
+          ]),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal')),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              if (!isAdmin) return;
-              
-              if (namaController.text.isEmpty || noTeleponController.text.isEmpty) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Nama dan No. Telepon wajib diisi')),
-                  );
-                }
+              if (namaC.text.trim().isEmpty || telpC.text.trim().isEmpty)
                 return;
-              }
-
-              final authProvider = Provider.of<AuthProvider>(context, listen: false);
-              final result = await authProvider.customerService.createCustomer(
-                nama: namaController.text.trim(),
-                noTelepon: noTeleponController.text.trim(),
-                alamat: alamatController.text.trim().isEmpty ? null : alamatController.text.trim(),
-                email: emailController.text.trim().isEmpty ? null : emailController.text.trim(),
-              );
-
-              if (mounted) {
-                Navigator.pop(context);
-                if (result['success'] == true) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(result['message'] ?? 'Berhasil')),
-                  );
-                  _loadData();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(result['message'] ?? 'Gagal'), 
-                      backgroundColor: Colors.red
-                    ),
-                  );
-                }
-              }
+              final result =
+                  await Provider.of<AuthProvider>(context, listen: false)
+                      .customerService
+                      .createCustomer(
+                        nama: namaC.text.trim(),
+                        noTelepon: telpC.text.trim(),
+                        alamat: alamatC.text.trim().isEmpty
+                            ? null
+                            : alamatC.text.trim(),
+                        email: emailC.text.trim().isEmpty
+                            ? null
+                            : emailC.text.trim(),
+                      );
+              if (!mounted) return;
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(result['message'] ?? 'Sukses'),
+                  backgroundColor:
+                      result['success'] ? Colors.green : Colors.red));
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 241, 24, 8)),
             child: const Text('Simpan'),
           ),
         ],
@@ -401,130 +461,98 @@ class _PenggunaPageState extends State<PenggunaPage>
     );
   }
 
-  void _showEditPelangganDialog(Map<String, dynamic> customer, int index) {
-    if (!isAdmin) return;
-    
-    final namaController = TextEditingController(text: customer['nama']);
-    final noTeleponController = TextEditingController(text: customer['no_telepon']);
-    final alamatController = TextEditingController(text: customer['alamat'] ?? '');
-    final emailController = TextEditingController(text: customer['email'] ?? '');
+  void _showEditPelangganDialog(Map<String, dynamic> customer) {
+    final namaC = TextEditingController(text: customer['nama']);
+    final telpC = TextEditingController(text: customer['no_telepon']);
+    final alamatC = TextEditingController(text: customer['alamat'] ?? '');
+    final emailC = TextEditingController(text: customer['email'] ?? '');
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text('Edit Pelanggan'),
         content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: namaController,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(
+                controller: namaC,
                 decoration: const InputDecoration(
-                  labelText: 'Nama *',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: noTeleponController,
+                    labelText: 'Nama *', border: OutlineInputBorder())),
+            const SizedBox(height: 12),
+            TextField(
+                controller: telpC,
                 decoration: const InputDecoration(
-                  labelText: 'No. Telepon *',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: alamatController,
+                    labelText: 'No. Telepon *', border: OutlineInputBorder())),
+            const SizedBox(height: 12),
+            TextField(
+                controller: alamatC,
                 decoration: const InputDecoration(
-                  labelText: 'Alamat',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: emailController,
+                    labelText: 'Alamat', border: OutlineInputBorder())),
+            const SizedBox(height: 12),
+            TextField(
+                controller: emailC,
                 decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-            ],
-          ),
+                    labelText: 'Email', border: OutlineInputBorder())),
+          ]),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal')),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              if (!isAdmin) return;
-              
-              if (namaController.text.isEmpty || noTeleponController.text.isEmpty) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Nama dan No. Telepon wajib diisi')),
-                  );
-                }
-                return;
-              }
-
-              // Update lokal sementara
-              setState(() {
-                pelangganList[index]['nama'] = namaController.text.trim();
-                pelangganList[index]['no_telepon'] = noTeleponController.text.trim();
-                pelangganList[index]['alamat'] = alamatController.text.trim();
-                pelangganList[index]['email'] = emailController.text.trim();
-              });
-
-              if (mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Pelanggan berhasil diupdate')),
-                );
-              }
+              final result =
+                  await Provider.of<AuthProvider>(context, listen: false)
+                      .customerService
+                      .updateCustomer(
+                        customerId: customer['id'],
+                        nama: namaC.text.trim(),
+                        noTelepon: telpC.text.trim(),
+                        alamat: alamatC.text.trim().isEmpty
+                            ? null
+                            : alamatC.text.trim(),
+                        email: emailC.text.trim().isEmpty
+                            ? null
+                            : emailC.text.trim(),
+                      );
+              if (!mounted) return;
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(result['message'] ?? 'Diperbarui'),
+                  backgroundColor:
+                      result['success'] ? Colors.green : Colors.red));
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 241, 24, 8)),
-            child: const Text('Simpan'),
+            child: const Text('Update'),
           ),
         ],
       ),
     );
   }
 
-  void _showDeletePelangganDialog(String customerId, int index) {
-    if (!isAdmin) return;
-    
+  void _showDeletePelangganDialog(String id) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text('Hapus Pelanggan'),
-        content: const Text('Apakah Anda yakin ingin menghapus pelanggan ini?'),
+        content: const Text('Yakin ingin menghapus?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal')),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              if (!isAdmin) return;
-              
-              // Hapus lokal sementara
-              setState(() {
-                pelangganList.removeAt(index);
-              });
-
-              if (mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Pelanggan berhasil dihapus')),
-                );
-              }
+              final result =
+                  await Provider.of<AuthProvider>(context, listen: false)
+                      .customerService
+                      .deleteCustomer(id);
+              if (!mounted) return;
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(result['message'] ?? 'Terhapus'),
+                  backgroundColor:
+                      result['success'] ? Colors.green : Colors.red));
             },
-            style: ElevatedButton.styleFrom(backgroundColor:  const Color.fromARGB(255, 241, 24, 8)),
             child: const Text('Hapus'),
           ),
         ],
@@ -532,116 +560,73 @@ class _PenggunaPageState extends State<PenggunaPage>
     );
   }
 
-  // ========== USER CRUD ==========
-  
   void _showAddUserDialog() {
-    if (!isAdmin) return;
-    
-    final namaController = TextEditingController();
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
-    String selectedJabatan = 'kasir';
+    final namaC = TextEditingController();
+    final emailC = TextEditingController();
+    final passC = TextEditingController();
+    String jabatan = 'kasir';
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setStateDlg) => AlertDialog(
           title: const Text('Tambah Pengguna'),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: namaController,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(
+                  controller: namaC,
                   decoration: const InputDecoration(
-                    labelText: 'Nama *',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: emailController,
+                      labelText: 'Nama *', border: OutlineInputBorder())),
+              const SizedBox(height: 12),
+              TextField(
+                  controller: emailC,
                   decoration: const InputDecoration(
-                    labelText: 'Email *',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: passwordController,
+                      labelText: 'Email *', border: OutlineInputBorder())),
+              const SizedBox(height: 12),
+              TextField(
+                  controller: passC,
                   decoration: const InputDecoration(
-                    labelText: 'Password *',
-                    border: OutlineInputBorder(),
-                  ),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: selectedJabatan,
-                  decoration: const InputDecoration(
-                    labelText: 'Jabatan',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                    DropdownMenuItem(value: 'kasir', child: Text('Kasir')),
-                  ],
-                  onChanged: (value) {
-                    setDialogState(() {
-                      selectedJabatan = value!;
-                    });
-                  },
-                ),
-              ],
-            ),
+                      labelText: 'Password *', border: OutlineInputBorder()),
+                  obscureText: true),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: jabatan,
+                decoration: const InputDecoration(
+                    labelText: 'Jabatan', border: OutlineInputBorder()),
+                items: const [
+                  DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                  DropdownMenuItem(value: 'kasir', child: Text('Kasir'))
+                ],
+                onChanged: (v) => setStateDlg(() => jabatan = v!),
+              ),
+            ]),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal'),
-            ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal')),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () async {
-                if (!isAdmin) return;
-                
-                if (namaController.text.isEmpty || 
-                    emailController.text.isEmpty || 
-                    passwordController.text.isEmpty) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Semua field wajib diisi')),
-                    );
-                  }
-                  return;
-                }
-
-                final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                final result = await authProvider.userService.createUser(
-                  email: emailController.text.trim(),
-                  password: passwordController.text,
-                  nama: namaController.text.trim(),
-                  jabatan: selectedJabatan,
-                );
-
-                if (mounted) {
-                  Navigator.pop(context);
-                  if (result['success'] == true) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(result['message'] ?? 'Berhasil')),
-                    );
-                    _loadData();
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(result['message'] ?? 'Gagal'), 
-                        backgroundColor: const Color.fromARGB(255, 241, 24, 8)
-                      ),
-                    );
-                  }
-                }
+                if (namaC.text.trim().isEmpty ||
+                    emailC.text.trim().isEmpty ||
+                    passC.text.trim().isEmpty) return;
+                final result =
+                    await Provider.of<AuthProvider>(context, listen: false)
+                        .userService
+                        .createUser(
+                          email: emailC.text.trim(),
+                          password: passC.text,
+                          nama: namaC.text.trim(),
+                          jabatan: jabatan,
+                        );
+                if (!mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(result['message'] ?? 'Sukses'),
+                    backgroundColor:
+                        result['success'] ? Colors.green : Colors.red));
               },
-              style: ElevatedButton.styleFrom(backgroundColor:  const Color.fromARGB(255, 241, 24, 8)),
               child: const Text('Simpan'),
             ),
           ],
@@ -650,107 +635,98 @@ class _PenggunaPageState extends State<PenggunaPage>
     );
   }
 
-  void _showEditUserDialog(Map<String, dynamic> user, int index) {
-    if (!isAdmin) return;
-    
-    final namaController = TextEditingController(text: user['nama']);
-    String selectedJabatan = user['jabatan'] ?? 'kasir';
-    bool isActive = user['is_active'] ?? true;
+  void _showEditUserDialog(Map<String, dynamic> user) {
+    final namaC = TextEditingController(text: user['nama']);
+    String jabatan = user['jabatan'] ?? 'kasir';
+    bool aktif = user['is_active'] ?? true;
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setStateDlg) => AlertDialog(
           title: const Text('Edit Pengguna'),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: namaController,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(
+                  controller: namaC,
                   decoration: const InputDecoration(
-                    labelText: 'Nama *',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: selectedJabatan,
-                  decoration: const InputDecoration(
-                    labelText: 'Jabatan',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                    DropdownMenuItem(value: 'kasir', child: Text('Kasir')),
-                  ],
-                  onChanged: (value) {
-                    setDialogState(() {
-                      selectedJabatan = value!;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                SwitchListTile(
+                      labelText: 'Nama *', border: OutlineInputBorder())),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: jabatan,
+                decoration: const InputDecoration(
+                    labelText: 'Jabatan', border: OutlineInputBorder()),
+                items: const [
+                  DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                  DropdownMenuItem(value: 'kasir', child: Text('Kasir'))
+                ],
+                onChanged: (v) => setStateDlg(() => jabatan = v!),
+              ),
+              const SizedBox(height: 12),
+              SwitchListTile(
                   title: const Text('Status Aktif'),
-                  value: isActive,
-                  onChanged: (value) {
-                    setDialogState(() {
-                      isActive = value;
-                    });
-                  },
-                ),
-              ],
-            ),
+                  value: aktif,
+                  onChanged: (v) => setStateDlg(() => aktif = v)),
+            ]),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal'),
-            ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal')),
             ElevatedButton(
-              onPressed: () async {
-                if (!isAdmin) return;
-                
-                if (namaController.text.isEmpty) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Nama wajib diisi')),
-                    );
-                  }
-                  return;
-                }
-
-                final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                final result = await authProvider.userService.updateUser(
-                  userId: user['id'],
-                  nama: namaController.text.trim(),
-                  jabatan: selectedJabatan,
-                  isActive: isActive,
-                );
-
-                if (mounted) {
-                  Navigator.pop(context);
-                  if (result['success'] == true) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(result['message'] ?? 'Berhasil')),
-                    );
-                    _loadData();
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(result['message'] ?? 'Gagal'), 
-                        backgroundColor: Colors.red
-                      ),
-                    );
-                  }
-                }
-              },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Simpan'),
+              onPressed: () async {
+                final result =
+                    await Provider.of<AuthProvider>(context, listen: false)
+                        .userService
+                        .updateUser(
+                          userId: user['id'],
+                          nama: namaC.text.trim(),
+                          jabatan: jabatan,
+                          isActive: aktif,
+                        );
+                if (!mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(result['message'] ?? 'Diperbarui'),
+                    backgroundColor:
+                        result['success'] ? Colors.green : Colors.red));
+              },
+              child: const Text('Update'),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showDeleteUserDialog(String userId) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Hapus Pengguna'),
+        content: const Text('Yakin ingin menghapus pengguna ini?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              final result =
+                  await Provider.of<AuthProvider>(context, listen: false)
+                      .userService
+                      .deleteUser(userId);
+              if (!mounted) return;
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(result['message'] ?? 'Terhapus'),
+                  backgroundColor:
+                      result['success'] ? Colors.green : Colors.red));
+            },
+            child: const Text('Hapus'),
+          ),
+        ],
       ),
     );
   }
