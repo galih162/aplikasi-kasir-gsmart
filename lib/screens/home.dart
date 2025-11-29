@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:gs_mart_aplikasi/App/Admin/Navigator.dart';
 import 'package:provider/provider.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
@@ -443,7 +444,7 @@ class _KasirDashboardState extends State<KasirDashboard> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => DashboardPage(user: widget.user),
+          builder: (context) => MainScreen(user: widget.user),
         ),
       );
     } else if (index == 1) {

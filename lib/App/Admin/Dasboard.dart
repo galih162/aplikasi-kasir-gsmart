@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gs_mart_aplikasi/screens/home.dart';
-import 'pengguna.dart';
 
 class DashboardPage extends StatefulWidget {
   final dynamic user; // Sesuaikan tipe data dengan model User Anda
-  
+
   const DashboardPage({Key? key, required this.user}) : super(key: key);
 
   @override
@@ -12,38 +11,7 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  int _selectedIndex = 0;
-
-  // ✅ TAMBAHKAN METHOD NAVIGASI DI SINI
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    
-    switch (index) {
-      case 0:
-        
-        break;
-      case 1:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const PenggunaPage()),
-        );
-        break;
-      // case 2:
-      //   Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (context) => StockPage()), // Ganti dengan halaman stok
-      //   );
-      //   break;
-      // case 3:
-      //   Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (context) => ReportPage()), // Ganti dengan halaman laporan
-      //   );
-      //   break;
-    }
-  }
+  
 
   final List<ChartData> chartData = [
     ChartData('Sen', 400),
@@ -105,7 +73,8 @@ class _DashboardPageState extends State<DashboardPage> {
                         children: chartData.map((data) {
                           return Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 4),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
@@ -113,7 +82,8 @@ class _DashboardPageState extends State<DashboardPage> {
                                     width: double.infinity,
                                     height: (data.value / 500) * 150,
                                     decoration: BoxDecoration(
-                                      color: const Color.fromARGB(255, 235, 25, 10),
+                                      color: const Color.fromARGB(
+                                          255, 235, 25, 10),
                                       borderRadius: const BorderRadius.vertical(
                                         top: Radius.circular(4),
                                       ),
@@ -138,12 +108,24 @@ class _DashboardPageState extends State<DashboardPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('0k', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
-                        Text('100k', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
-                        Text('200k', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
-                        Text('300k', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
-                        Text('400k', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
-                        Text('500k', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+                        Text('0k',
+                            style: TextStyle(
+                                fontSize: 10, color: Colors.grey[600])),
+                        Text('100k',
+                            style: TextStyle(
+                                fontSize: 10, color: Colors.grey[600])),
+                        Text('200k',
+                            style: TextStyle(
+                                fontSize: 10, color: Colors.grey[600])),
+                        Text('300k',
+                            style: TextStyle(
+                                fontSize: 10, color: Colors.grey[600])),
+                        Text('400k',
+                            style: TextStyle(
+                                fontSize: 10, color: Colors.grey[600])),
+                        Text('500k',
+                            style: TextStyle(
+                                fontSize: 10, color: Colors.grey[600])),
                       ],
                     ),
                   ],
@@ -151,12 +133,12 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Statistics Card
             Container(
               width: 400.0,
               child: Card(
-                color:   Color.fromARGB(230, 250, 250, 250),
+                color: Color.fromARGB(230, 250, 250, 250),
                 elevation: 2,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -174,7 +156,8 @@ class _DashboardPageState extends State<DashboardPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 10,
+                      SizedBox(
+                        height: 10,
                       ),
                       Text(
                         'Rp 1.000.000',
@@ -190,7 +173,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Info Cards
             Row(
               children: [
@@ -285,33 +268,6 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.red,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        elevation: 8,
-        onTap: _onItemTapped, // ✅ GUNAKAN METHOD _onItemTapped YANG SUDAH DIBUAT
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_add),
-            label: 'Tambah',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory_2),
-            label: 'Stok',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.description),
-            label: 'Laporan',
-          ),
-        ],
       ),
     );
   }

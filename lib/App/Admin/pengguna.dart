@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gs_mart_aplikasi/App/Admin/Dasboard.dart';
 import 'package:provider/provider.dart';
 import 'package:gs_mart_aplikasi/database/service.dart';
+
 
 class PenggunaPage extends StatefulWidget {
   const PenggunaPage({Key? key}) : super(key: key);
@@ -15,7 +15,6 @@ class _PenggunaPageState extends State<PenggunaPage>
   late TabController _tabController;
   bool isAdmin = false;
   bool isChecking = true;
-  int _selectedIndex = 1;
 
   // Key untuk refresh StreamBuilder secara manual
   final GlobalKey _pelangganKey = GlobalKey();
@@ -52,50 +51,6 @@ class _PenggunaPageState extends State<PenggunaPage>
       const SnackBar(
           content: Text('Data diperbarui!'), backgroundColor: Colors.green),
     );
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    switch (index) {
-      case 0:
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        final currentUser = authProvider.currentUser;
-
-        if (currentUser != null) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DashboardPage(user: currentUser),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error: Data pengguna tidak tersedia'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        break;
-        
-      case 1:
-
-      // case 2:
-      //   Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (context) => StockPage()), // Ganti dengan halaman stok
-      //   );
-      //   break;
-      // case 3:
-      //   Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (context) => ReportPage()), // Ganti dengan halaman laporan
-      //   );
-      //   break; Navigator.pop(context);
-    }
   }
 
   @override
@@ -155,34 +110,6 @@ class _PenggunaPageState extends State<PenggunaPage>
               child: const Icon(Icons.add, color: Colors.white, size: 32),
             )
           : null,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.red,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        elevation: 8,
-        onTap:
-            _onItemTapped, // ✅ GUNAKAN METHOD _onItemTapped YANG SUDAH DIBUAT
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_add),
-            label: 'Tambah',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory_2),
-            label: 'Stok',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.description),
-            label: 'Laporan',
-          ),
-        ],
-      ),
     );
   }
 
@@ -538,7 +465,8 @@ class _PenggunaPageState extends State<PenggunaPage>
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Batal')),
+              child:
+                  const Text('Batal', style: TextStyle(color: Colors.black))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
@@ -553,7 +481,10 @@ class _PenggunaPageState extends State<PenggunaPage>
                   backgroundColor:
                       result['success'] ? Colors.green : Colors.red));
             },
-            child: const Text('Hapus'),
+            child: const Text(
+              'Hapus',
+              style: TextStyle(color: Colors.black),
+            ),
           ),
         ],
       ),
@@ -709,7 +640,8 @@ class _PenggunaPageState extends State<PenggunaPage>
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Batal')),
+              child:
+                  const Text('Batal', style: TextStyle(color: Colors.black))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
@@ -724,7 +656,7 @@ class _PenggunaPageState extends State<PenggunaPage>
                   backgroundColor:
                       result['success'] ? Colors.green : Colors.red));
             },
-            child: const Text('Hapus'),
+            child: const Text('Hapus', style: TextStyle(color: Colors.black)),
           ),
         ],
       ),

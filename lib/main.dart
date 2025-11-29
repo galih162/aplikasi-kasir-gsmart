@@ -4,11 +4,17 @@ import 'package:gs_mart_aplikasi/database/service.dart';
 import 'package:gs_mart_aplikasi/screens/loading_screen.dart';
 import 'package:gs_mart_aplikasi/screens/login_screen.dart';
 import 'package:gs_mart_aplikasi/screens/home.dart';
+import 'package:gs_mart_aplikasi/App/Admin/navigator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SupabaseConfig.initialize();
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => AuthProvider()..checkSession(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -33,6 +39,10 @@ class MyApp extends StatelessWidget {
           '/dashboard': (context) {
             final auth = context.read<AuthProvider>();
             return KasirDashboard(user: auth.currentUser!);
+          },
+           '/admin': (context) { // ✅ TAMBAH ROUTE KE ADMIN
+            final auth = context.read<AuthProvider>();
+            return MainScreen(user: auth.currentUser!);
           },
         },
         // Handle unknown routes

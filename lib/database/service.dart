@@ -848,38 +848,33 @@ class CustomerService {
     }
   }
 
-  Future<Map<String, dynamic>> deleteCustomer(String customerId) async {
-    try {
-      // Pertama cek apakah pelanggan digunakan dalam transaksi
-      final usageCheck = await _client
-          .from('penjualan')
-          .select('id')
-          .eq('pelanggan_id', customerId);
+Future<Map<String, dynamic>> deleteCustomer(String customerId) async {
+  try {
+    // Cek apakah pelanggan digunakan dalam transaksi
+    final usageCheck = await _client
+        .from('penjualan')
+        .select('id')
+        .eq('pelanggan_id', customerId);
 
-      if (usageCheck.isNotEmpty) {
-        return {
-          'success': false, 
-          'message': 'Pelanggan tidak dapat dihapus karena masih digunakan dalam transaksi'
-        };
-      }
-
-      // Jika tidak digunakan dalam transaksi, lakukan delete
-      final result = await _client
-          .from('pelanggan')
-          .delete()
-          .eq('id', customerId)
-          .select();
-
-      if (result.isEmpty) {
-        return {'success': false, 'message': 'Pelanggan tidak ditemukan atau gagal dihapus'};
-      }
-
-      return {'success': true, 'message': 'Pelanggan berhasil dihapus'};
-    } catch (e) {
-      debugPrint('❌ Delete customer error: $e');
-      return {'success': false, 'message': 'Gagal menghapus pelanggan: ${e.toString()}'};
+    if (usageCheck.isNotEmpty) {
+      return {
+        'success': false, 
+        'message': 'Pelanggan tidak dapat dihapus karena masih digunakan dalam ${usageCheck.length} transaksi'
+      };
     }
+
+    await _client
+        .from('pelanggan')
+        .delete()
+        .eq('id', customerId);
+
+    return {'success': true, 'message': 'Pelanggan berhasil dihapus'};
+
+  } catch (e) {
+    debugPrint('❌ Delete customer error: $e');
+    return {'success': false, 'message': 'Gagal menghapus pelanggan: ${e.toString()}'};
   }
+}
 }
 
 class StorageService {
