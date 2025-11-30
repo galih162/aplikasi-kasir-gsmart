@@ -40,14 +40,6 @@ class _DashboardPageState extends State<DashboardPage> {
             );
           },
         ),
-        title: const Text(
-          'Statistik',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

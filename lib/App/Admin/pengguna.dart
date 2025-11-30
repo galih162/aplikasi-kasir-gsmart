@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:gs_mart_aplikasi/database/service.dart';
 
-
 class PenggunaPage extends StatefulWidget {
   const PenggunaPage({Key? key}) : super(key: key);
 
@@ -64,11 +63,9 @@ class _PenggunaPageState extends State<PenggunaPage>
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.red,
+        backgroundColor: const Color.fromARGB(255, 235, 25, 10),
         elevation: 0,
         leading: Container(),
-        title:
-            const Text('Manajemen Data', style: TextStyle(color: Colors.white)),
         actions: isAdmin
             ? [
                 IconButton(
@@ -83,7 +80,7 @@ class _PenggunaPageState extends State<PenggunaPage>
         children: [
           if (isAdmin)
             Container(
-              color: Colors.red,
+              color: const Color.fromARGB(255, 235, 25, 10),
               child: TabBar(
                 controller: _tabController,
                 indicatorColor: Colors.white,
@@ -106,7 +103,7 @@ class _PenggunaPageState extends State<PenggunaPage>
       floatingActionButton: isAdmin
           ? FloatingActionButton(
               onPressed: _showAddDialog,
-              backgroundColor: Colors.red,
+              backgroundColor: const Color.fromARGB(255, 235, 25, 10),
               child: const Icon(Icons.add, color: Colors.white, size: 32),
             )
           : null,
@@ -209,7 +206,10 @@ class _PenggunaPageState extends State<PenggunaPage>
       child: ListTile(
         leading: CircleAvatar(
             backgroundColor: Colors.white,
-            child: Icon(Icons.person_outline, color: Colors.red[700])),
+            child: Icon(
+              Icons.person_outline,
+              color: const Color.fromARGB(255, 235, 25, 10),
+            )),
         title: Text(customer['nama'] ?? 'Tanpa Nama',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
         subtitle: Text(customer['no_telepon'] ?? '-',
@@ -246,7 +246,11 @@ class _PenggunaPageState extends State<PenggunaPage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: const Color.fromARGB(255, 235, 25, 10),
+                ),
                 const SizedBox(height: 16),
                 Text('Error: ${snapshot.error}'),
                 ElevatedButton(
@@ -291,7 +295,10 @@ class _PenggunaPageState extends State<PenggunaPage>
       child: ListTile(
         leading: CircleAvatar(
             backgroundColor: Colors.white,
-            child: Icon(Icons.person_outline, color: Colors.red[700])),
+            child: Icon(
+              Icons.person_outline,
+              color: const Color.fromARGB(255, 235, 25, 10),
+            )),
         title: Text(user['nama'] ?? 'Tanpa Nama',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
         subtitle: Text('${user['jabatan'] ?? '-'} • ${user['email'] ?? '-'}',
@@ -300,7 +307,10 @@ class _PenggunaPageState extends State<PenggunaPage>
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              icon: const Icon(
+                Icons.delete_outline,
+                color: const Color.fromARGB(255, 235, 25, 10),
+              ),
               onPressed: () => _showDeleteUserDialog(user['id']),
             ),
             IconButton(
@@ -355,9 +365,16 @@ class _PenggunaPageState extends State<PenggunaPage>
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Batal')),
+              child: const Text(
+                'Batal',
+                style: const TextStyle(
+                  color: Color.fromARGB(230, 17, 0, 0),
+                ),
+              )),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 235, 25, 10),
+            ),
             onPressed: () async {
               if (namaC.text.trim().isEmpty || telpC.text.trim().isEmpty)
                 return;
@@ -377,11 +394,18 @@ class _PenggunaPageState extends State<PenggunaPage>
               if (!mounted) return;
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(result['message'] ?? 'Sukses'),
-                  backgroundColor:
-                      result['success'] ? Colors.green : Colors.red));
+                content: Text(result['message'] ?? 'Sukses'),
+                backgroundColor: result['success']
+                    ? Colors.green
+                    : const Color.fromARGB(255, 235, 25, 10),
+              ));
             },
-            child: const Text('Simpan'),
+            child: const Text(
+              'Simpan',
+              style: const TextStyle(
+                color: Color.fromARGB(230, 17, 0, 0),
+              ),
+            ),
           ),
         ],
       ),
@@ -424,9 +448,16 @@ class _PenggunaPageState extends State<PenggunaPage>
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Batal')),
+              child: const Text(
+                'Batal',
+                style: const TextStyle(
+                  color: Color.fromARGB(230, 17, 0, 0),
+                ),
+              )),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 235, 25, 10),
+            ),
             onPressed: () async {
               final result =
                   await Provider.of<AuthProvider>(context, listen: false)
@@ -445,9 +476,11 @@ class _PenggunaPageState extends State<PenggunaPage>
               if (!mounted) return;
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(result['message'] ?? 'Diperbarui'),
-                  backgroundColor:
-                      result['success'] ? Colors.green : Colors.red));
+                content: Text(result['message'] ?? 'Diperbarui'),
+                backgroundColor: result['success']
+                    ? Colors.green
+                    : const Color.fromARGB(255, 235, 25, 10),
+              ));
             },
             child: const Text('Update'),
           ),
@@ -468,7 +501,9 @@ class _PenggunaPageState extends State<PenggunaPage>
               child:
                   const Text('Batal', style: TextStyle(color: Colors.black))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 235, 25, 10),
+            ),
             onPressed: () async {
               final result =
                   await Provider.of<AuthProvider>(context, listen: false)
@@ -477,9 +512,11 @@ class _PenggunaPageState extends State<PenggunaPage>
               if (!mounted) return;
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(result['message'] ?? 'Terhapus'),
-                  backgroundColor:
-                      result['success'] ? Colors.green : Colors.red));
+                content: Text(result['message'] ?? 'Terhapus'),
+                backgroundColor: result['success']
+                    ? Colors.green
+                    : const Color.fromARGB(255, 235, 25, 10),
+              ));
             },
             child: const Text(
               'Hapus',
@@ -535,9 +572,16 @@ class _PenggunaPageState extends State<PenggunaPage>
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Batal')),
+                child: const Text(
+                  'Batal',
+                  style: const TextStyle(
+                    color: Color.fromARGB(230, 17, 0, 0),
+                  ),
+                )),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 235, 25, 10),
+              ),
               onPressed: () async {
                 if (namaC.text.trim().isEmpty ||
                     emailC.text.trim().isEmpty ||
@@ -554,11 +598,18 @@ class _PenggunaPageState extends State<PenggunaPage>
                 if (!mounted) return;
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text(result['message'] ?? 'Sukses'),
-                    backgroundColor:
-                        result['success'] ? Colors.green : Colors.red));
+                  content: Text(result['message'] ?? 'Sukses'),
+                  backgroundColor: result['success']
+                      ? Colors.green
+                      : const Color.fromARGB(255, 235, 25, 10),
+                ));
               },
-              child: const Text('Simpan'),
+              child: const Text(
+                'Simpan',
+                style: const TextStyle(
+                  color: Color.fromARGB(230, 17, 0, 0),
+                ),
+              ),
             ),
           ],
         ),

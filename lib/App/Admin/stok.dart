@@ -124,10 +124,6 @@ class _StokPageState extends State<StokPage> {
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 247, 5, 1),
         leading: Container(),
-        title: const Text(
-          'Stok Barang',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
         elevation: 0,
       ),
       body: _isLoading

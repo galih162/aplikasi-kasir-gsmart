@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'stok.dart';
 import 'pengguna.dart';
 import 'Dasboard.dart';
+import 'laporan.dart';
 
 class AppBottomNavigator extends StatelessWidget {
   final int currentIndex;
@@ -50,7 +51,7 @@ class _MainScreenState extends State<MainScreen> {
       DashboardPage(user: widget.user),    // Index 0
       const PenggunaPage(),                // Index 1
       const StokPage(),                    // Index 2
-      const Placeholder(child: Center(child: Text('Halaman Laporan'))), // Index 3
+      const LaporanPage(),                 // Index 3
     ];
 
     return Scaffold(
