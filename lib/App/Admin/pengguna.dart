@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:gs_mart_aplikasi/database/service.dart';
+import 'package:gs_mart_aplikasi/database/auth_provider.dart';
 
 class PenggunaPage extends StatefulWidget {
   const PenggunaPage({Key? key}) : super(key: key);
@@ -323,88 +323,150 @@ class _PenggunaPageState extends State<PenggunaPage>
     );
   }
 
-  // ==================== CRUD DIALOGS (TETAP SAMA) ====================
-  // ... (semua fungsi dialog tetap sama seperti sebelumnya)
-  // Karena terlalu panjang, saya biarkan tetap seperti kode kamu sebelumnya
-  // Tidak ada perubahan di bagian dialog
-
+  /* ==========================================================
+   TAMBAH PELANGGAN – dengan validasi
+   ========================================================== */
+  /* ==========================================================
+   TAMBAH PELANGGAN – dengan validasi real-time
+   ========================================================== */
   void _showAddPelangganDialog() {
     final namaC = TextEditingController();
     final telpC = TextEditingController();
     final alamatC = TextEditingController();
     final emailC = TextEditingController();
 
+    // Key untuk form
+    final _formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Tambah Pelanggan'),
         content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextField(
-                controller: namaC,
-                decoration: const InputDecoration(
-                    labelText: 'Nama *', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(
-                controller: telpC,
-                decoration: const InputDecoration(
-                    labelText: 'No. Telepon *', border: OutlineInputBorder()),
-                keyboardType: TextInputType.phone),
-            const SizedBox(height: 12),
-            TextField(
-                controller: alamatC,
-                decoration: const InputDecoration(
-                    labelText: 'Alamat', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(
-                controller: emailC,
-                decoration: const InputDecoration(
-                    labelText: 'Email', border: OutlineInputBorder())),
-          ]),
+          child: Form(
+            key: _formKey,
+            autovalidateMode:
+                AutovalidateMode.onUserInteraction, // ← Validasi real-time
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: namaC,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama *',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Nama wajib diisi';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: telpC,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'No. Telepon *',
+                    border: OutlineInputBorder(),
+                    hintText: 'Contoh: 081234567890',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'No. telepon wajib diisi';
+                    }
+                    if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                      return 'Hanya boleh angka';
+                    }
+                    if (value.length < 10) {
+                      return 'Minimal 10 digit';
+                    }
+                    if (value.length > 15) {
+                      return 'Maksimal 15 digit';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: alamatC,
+                  decoration: const InputDecoration(
+                    labelText: 'Alamat',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: emailC,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                    hintText: 'contoh@email.com',
+                  ),
+                  validator: (value) {
+                    if (value != null && value.isNotEmpty) {
+                      if (!value.contains('@')) {
+                        return 'Email harus mengandung @';
+                      }
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
+                        return 'Format email tidak valid';
+                      }
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Batal',
-                style: const TextStyle(
-                  color: Color.fromARGB(230, 17, 0, 0),
-                ),
-              )),
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Batal',
+              style: TextStyle(color: Color.fromARGB(230, 17, 0, 0)),
+            ),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color.fromARGB(255, 235, 25, 10),
             ),
             onPressed: () async {
-              if (namaC.text.trim().isEmpty || telpC.text.trim().isEmpty)
+              // Validasi form
+              if (!_formKey.currentState!.validate()) {
                 return;
+              }
+
+              final nama = namaC.text.trim();
+              final telp = telpC.text.trim();
+              final alamat = alamatC.text.trim();
+              final email = emailC.text.trim();
+
+              /* ---------- kirim ke service ---------- */
               final result =
                   await Provider.of<AuthProvider>(context, listen: false)
                       .customerService
                       .createCustomer(
-                        nama: namaC.text.trim(),
-                        noTelepon: telpC.text.trim(),
-                        alamat: alamatC.text.trim().isEmpty
-                            ? null
-                            : alamatC.text.trim(),
-                        email: emailC.text.trim().isEmpty
-                            ? null
-                            : emailC.text.trim(),
+                        nama: nama,
+                        noTelepon: telp,
+                        alamat: alamat.isEmpty ? null : alamat,
+                        email: email.isEmpty ? null : email,
                       );
+
               if (!mounted) return;
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(result['message'] ?? 'Sukses'),
-                backgroundColor: result['success']
-                    ? Colors.green
-                    : const Color.fromARGB(255, 235, 25, 10),
+                backgroundColor: result['success'] ? Colors.green : Colors.red,
               ));
             },
             child: const Text(
               'Simpan',
-              style: const TextStyle(
-                color: Color.fromARGB(230, 17, 0, 0),
-              ),
+              style: TextStyle(color: Color.fromARGB(230, 17, 0, 0)),
             ),
           ),
         ],
@@ -412,77 +474,149 @@ class _PenggunaPageState extends State<PenggunaPage>
     );
   }
 
+/* ==========================================================
+   EDIT PELANGGAN – dengan validasi real-time
+   ========================================================== */
   void _showEditPelangganDialog(Map<String, dynamic> customer) {
     final namaC = TextEditingController(text: customer['nama']);
     final telpC = TextEditingController(text: customer['no_telepon']);
     final alamatC = TextEditingController(text: customer['alamat'] ?? '');
     final emailC = TextEditingController(text: customer['email'] ?? '');
 
+    // Key untuk form
+    final _formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Edit Pelanggan'),
         content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextField(
-                controller: namaC,
-                decoration: const InputDecoration(
-                    labelText: 'Nama *', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(
-                controller: telpC,
-                decoration: const InputDecoration(
-                    labelText: 'No. Telepon *', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(
-                controller: alamatC,
-                decoration: const InputDecoration(
-                    labelText: 'Alamat', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(
-                controller: emailC,
-                decoration: const InputDecoration(
-                    labelText: 'Email', border: OutlineInputBorder())),
-          ]),
+          child: Form(
+            key: _formKey,
+            autovalidateMode:
+                AutovalidateMode.onUserInteraction, // ← Validasi real-time
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: namaC,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama *',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Nama wajib diisi';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: telpC,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'No. Telepon *',
+                    border: OutlineInputBorder(),
+                    hintText: 'Contoh: 081234567890',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'No. telepon wajib diisi';
+                    }
+                    if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                      return 'Hanya boleh angka';
+                    }
+                    if (value.length < 10) {
+                      return 'Minimal 10 digit';
+                    }
+                    if (value.length > 15) {
+                      return 'Maksimal 15 digit';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: alamatC,
+                  decoration: const InputDecoration(
+                    labelText: 'Alamat',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: emailC,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                    hintText: 'contoh@email.com',
+                  ),
+                  validator: (value) {
+                    if (value != null && value.isNotEmpty) {
+                      if (!value.contains('@')) {
+                        return 'Email harus mengandung @';
+                      }
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
+                        return 'Format email tidak valid';
+                      }
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Batal',
-                style: const TextStyle(
-                  color: Color.fromARGB(230, 17, 0, 0),
-                ),
-              )),
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Batal',
+              style: TextStyle(color: Color.fromARGB(230, 17, 0, 0)),
+            ),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color.fromARGB(255, 235, 25, 10),
             ),
             onPressed: () async {
+              // Validasi form
+              if (!_formKey.currentState!.validate()) {
+                return;
+              }
+
+              final nama = namaC.text.trim();
+              final telp = telpC.text.trim();
+              final alamat = alamatC.text.trim();
+              final email = emailC.text.trim();
+
+              /* ---------- kirim ke service ---------- */
               final result =
                   await Provider.of<AuthProvider>(context, listen: false)
                       .customerService
                       .updateCustomer(
                         customerId: customer['id'],
-                        nama: namaC.text.trim(),
-                        noTelepon: telpC.text.trim(),
-                        alamat: alamatC.text.trim().isEmpty
-                            ? null
-                            : alamatC.text.trim(),
-                        email: emailC.text.trim().isEmpty
-                            ? null
-                            : emailC.text.trim(),
+                        nama: nama,
+                        noTelepon: telp,
+                        alamat: alamat.isEmpty ? null : alamat,
+                        email: email.isEmpty ? null : email,
                       );
+
               if (!mounted) return;
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(result['message'] ?? 'Diperbarui'),
-                backgroundColor: result['success']
-                    ? Colors.green
-                    : const Color.fromARGB(255, 235, 25, 10),
+                backgroundColor: result['success'] ? Colors.green : Colors.red,
               ));
             },
-            child: const Text('Update'),
+            child: const Text(
+              'Update',
+              style: TextStyle(color: Color.fromARGB(230, 17, 0, 0)),
+            ),
           ),
         ],
       ),
@@ -534,67 +668,134 @@ class _PenggunaPageState extends State<PenggunaPage>
     final passC = TextEditingController();
     String jabatan = 'kasir';
 
+    // Key untuk form
+    final _formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setStateDlg) => AlertDialog(
           title: const Text('Tambah Pengguna'),
           content: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(
-                  controller: namaC,
-                  decoration: const InputDecoration(
-                      labelText: 'Nama *', border: OutlineInputBorder())),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: emailC,
-                  decoration: const InputDecoration(
-                      labelText: 'Email *', border: OutlineInputBorder())),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: passC,
-                  decoration: const InputDecoration(
-                      labelText: 'Password *', border: OutlineInputBorder()),
-                  obscureText: true),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: jabatan,
-                decoration: const InputDecoration(
-                    labelText: 'Jabatan', border: OutlineInputBorder()),
-                items: const [
-                  DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                  DropdownMenuItem(value: 'kasir', child: Text('Kasir'))
+            child: Form(
+              key: _formKey,
+              autovalidateMode:
+                  AutovalidateMode.onUserInteraction, // ← Validasi real-time
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: namaC,
+                    decoration: const InputDecoration(
+                      labelText: 'Nama *',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Nama wajib diisi';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: emailC,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email *',
+                      border: OutlineInputBorder(),
+                      hintText: 'contoh@email.com',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Email wajib diisi';
+                      }
+                      if (!value.contains('@')) {
+                        return 'Email harus mengandung @';
+                      }
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
+                        return 'Format email tidak valid';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: passC,
+                    decoration: const InputDecoration(
+                      labelText: 'Password *',
+                      border: OutlineInputBorder(),
+                      hintText: 'Minimal 8 karakter',
+                    ),
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Password wajib diisi';
+                      }
+                      if (value.length < 8) {
+                        return 'Minimal 8 karakter';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: jabatan,
+                    decoration: const InputDecoration(
+                      labelText: 'Jabatan',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'admin',
+                        child: Text('Admin'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'kasir',
+                        child: Text('Kasir'),
+                      ),
+                    ],
+                    onChanged: (v) => setStateDlg(() => jabatan = v!),
+                  ),
                 ],
-                onChanged: (v) => setStateDlg(() => jabatan = v!),
               ),
-            ]),
+            ),
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Batal',
-                  style: const TextStyle(
-                    color: Color.fromARGB(230, 17, 0, 0),
-                  ),
-                )),
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Batal',
+                style: TextStyle(
+                  color: Color.fromARGB(230, 17, 0, 0),
+                ),
+              ),
+            ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color.fromARGB(255, 235, 25, 10),
               ),
               onPressed: () async {
-                if (namaC.text.trim().isEmpty ||
-                    emailC.text.trim().isEmpty ||
-                    passC.text.trim().isEmpty) return;
+                // Validasi form
+                if (!_formKey.currentState!.validate()) {
+                  return;
+                }
+
+                final nama = namaC.text.trim();
+                final email = emailC.text.trim();
+                final pass = passC.text.trim();
+
                 final result =
                     await Provider.of<AuthProvider>(context, listen: false)
                         .userService
                         .createUser(
-                          email: emailC.text.trim(),
-                          password: passC.text,
-                          nama: namaC.text.trim(),
+                          email: email,
+                          password: pass,
+                          nama: nama,
                           jabatan: jabatan,
                         );
+
                 if (!mounted) return;
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -606,7 +807,7 @@ class _PenggunaPageState extends State<PenggunaPage>
               },
               child: const Text(
                 'Simpan',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Color.fromARGB(230, 17, 0, 0),
                 ),
               ),
@@ -617,10 +818,18 @@ class _PenggunaPageState extends State<PenggunaPage>
     );
   }
 
+/* ==========================================================
+   EDIT PENGGUNA – dengan validasi real-time
+   ========================================================== */
   void _showEditUserDialog(Map<String, dynamic> user) {
     final namaC = TextEditingController(text: user['nama']);
+    final emailC = TextEditingController(text: user['email']);
+    final passC = TextEditingController(); // kosong = tidak ganti password
     String jabatan = user['jabatan'] ?? 'kasir';
     bool aktif = user['is_active'] ?? true;
+
+    // Key untuk form
+    final _formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
@@ -628,51 +837,133 @@ class _PenggunaPageState extends State<PenggunaPage>
         builder: (ctx, setStateDlg) => AlertDialog(
           title: const Text('Edit Pengguna'),
           content: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(
-                  controller: namaC,
-                  decoration: const InputDecoration(
-                      labelText: 'Nama *', border: OutlineInputBorder())),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: jabatan,
-                decoration: const InputDecoration(
-                    labelText: 'Jabatan', border: OutlineInputBorder()),
-                items: const [
-                  DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                  DropdownMenuItem(value: 'kasir', child: Text('Kasir'))
+            child: Form(
+              key: _formKey,
+              autovalidateMode:
+                  AutovalidateMode.onUserInteraction, // ← Validasi real-time
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: namaC,
+                    decoration: const InputDecoration(
+                      labelText: 'Nama *',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Nama wajib diisi';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: emailC,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email *',
+                      border: OutlineInputBorder(),
+                      hintText: 'contoh@email.com',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Email wajib diisi';
+                      }
+                      if (!value.contains('@')) {
+                        return 'Email harus mengandung @';
+                      }
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
+                        return 'Format email tidak valid';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: passC,
+                    decoration: const InputDecoration(
+                      labelText: 'Password (kosongkan jika tidak ubah)',
+                      border: OutlineInputBorder(),
+                      hintText: 'Minimal 8 karakter jika diisi',
+                    ),
+                    obscureText: true,
+                    validator: (value) {
+                      if (value != null &&
+                          value.isNotEmpty &&
+                          value.length < 8) {
+                        return 'Minimal 8 karakter';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: jabatan,
+                    decoration: const InputDecoration(
+                      labelText: 'Jabatan',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'admin',
+                        child: Text('Admin'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'kasir',
+                        child: Text('Kasir'),
+                      ),
+                    ],
+                    onChanged: (v) => setStateDlg(() => jabatan = v!),
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    title: const Text('Status Aktif'),
+                    value: aktif,
+                    onChanged: (v) => setStateDlg(() => aktif = v),
+                  ),
                 ],
-                onChanged: (v) => setStateDlg(() => jabatan = v!),
               ),
-              const SizedBox(height: 12),
-              SwitchListTile(
-                  title: const Text('Status Aktif'),
-                  value: aktif,
-                  onChanged: (v) => setStateDlg(() => aktif = v)),
-            ]),
+            ),
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Batal')),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal'),
+            ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 235, 25, 10),
+              ),
               onPressed: () async {
+                // Validasi form
+                if (!_formKey.currentState!.validate()) {
+                  return;
+                }
+
+                final nama = namaC.text.trim();
+                final email = emailC.text.trim();
+                final pass = passC.text.trim();
+
                 final result =
                     await Provider.of<AuthProvider>(context, listen: false)
                         .userService
                         .updateUser(
                           userId: user['id'],
-                          nama: namaC.text.trim(),
+                          nama: nama,
+                          email: email,
                           jabatan: jabatan,
                           isActive: aktif,
                         );
+
                 if (!mounted) return;
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text(result['message'] ?? 'Diperbarui'),
-                    backgroundColor:
-                        result['success'] ? Colors.green : Colors.red));
+                  content: Text(result['message'] ?? 'Diperbarui'),
+                  backgroundColor:
+                      result['success'] ? Colors.green : Colors.red,
+                ));
               },
               child: const Text('Update'),
             ),

@@ -17,6 +17,7 @@ dependencies:
   supabase_flutter: ^2.5.0 
   shared_preferences: ^2.2.2
   image_picker: ^1.2.1
+  file_picker: ^6.1.1 
   path: ^1.9.1
   intl: ^0.18.1
   cached_network_image: ^3.4.1

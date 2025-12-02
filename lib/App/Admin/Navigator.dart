@@ -4,6 +4,9 @@ import 'pengguna.dart';
 import 'Dasboard.dart';
 import 'laporan.dart';
 
+/// -------------------------------
+/// BOTTOM NAVIGATOR
+/// -------------------------------
 class AppBottomNavigator extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int>? onTap;
@@ -34,34 +37,47 @@ class AppBottomNavigator extends StatelessWidget {
   }
 }
 
-class MainScreen extends StatefulWidget {
+/// -------------------------------
+/// NAVIGATOR SCREEN
+/// (Pengganti MainScreen)
+/// -------------------------------
+class NavigatorScreen extends StatefulWidget {
   final dynamic user;
-  const MainScreen({super.key, required this.user});
+  const NavigatorScreen({super.key, required this.user});
   
   @override 
-  State<MainScreen> createState() => _MainScreenState();
+  State<NavigatorScreen> createState() => _NavigatorScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _NavigatorScreenState extends State<NavigatorScreen> {
+  final PageController _pageController = PageController();
   int _selectedIndex = 0;
 
   @override
-  Widget build(BuildContext context) {
-    final List<Widget> _pages = [
-      DashboardPage(user: widget.user),    // Index 0
-      const PenggunaPage(),                // Index 1
-      const StokPage(),                    // Index 2
-      const LaporanPage(),                 // Index 3
-    ];
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(), // No swipe
+        children: [
+          DashboardPage(user: widget.user),
+          PenggunaPage(),
+          StokPage(), 
+          LaporanPage(),
+        ],
       ),
       bottomNavigationBar: AppBottomNavigator(
         currentIndex: _selectedIndex,
-        onTap: (index) => setState(() => _selectedIndex = index),
+        onTap: (index) {
+          setState(() => _selectedIndex = index);
+          _pageController.jumpToPage(index);
+        },
       ),
     );
   }

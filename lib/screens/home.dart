@@ -7,8 +7,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'dart:io';
 import 'dart:math';
-import 'package:gs_mart_aplikasi/database/service.dart';
-import 'package:gs_mart_aplikasi/App/Admin/Dasboard.dart';
+import 'package:gs_mart_aplikasi/database/auth_provider.dart';
+import 'package:gs_mart_aplikasi/database/product_service.dart';
+import 'package:gs_mart_aplikasi/models/user.dart';
 
 const Color primaryColor = Color.fromARGB(255, 235, 23, 19);
 const Color accentColor = Color(0xFF4CAF50);
@@ -434,49 +435,47 @@ class _KasirDashboardState extends State<KasirDashboard> {
 
     return Scaffold(
         backgroundColor: Colors.white,
-        appBar: _buildAppBar(
-        ), 
-        body: _buildBody(), 
+        appBar: _buildAppBar(),
+        body: _buildBody(),
         bottomNavigationBar: BottomNavigationBar(
-  currentIndex: selectedBottomIndex,
-  onTap: (index) {
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => MainScreen(user: widget.user),
+          currentIndex: selectedBottomIndex,
+          onTap: (index) {
+            if (index == 0) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => NavigatorScreen(user: widget.user),
+                ),
+              );
+            } else if (index == 1) {
+              setState(() {
+                selectedBottomIndex = index;
+              });
+            } else if (index == 2) {
+              setState(() {
+                selectedBottomIndex = index;
+              });
+            }
+          },
+          items: [
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart),
+              label: 'Statistik',
+            ),
+            BottomNavigationBarItem(
+              icon: Badge(
+                label: cartItemCount > 0 ? Text('$cartItemCount') : null,
+                isLabelVisible: cartItemCount > 0,
+                child: const Icon(Icons.store),
+              ),
+              label: 'Produk',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: 'Profil',
+            ),
+          ],
         ),
-      );
-    } else if (index == 1) {
-      setState(() {
-        selectedBottomIndex = index;
-      });
-    } else if (index == 2) {
-      
-      setState(() {
-        selectedBottomIndex = index;
-      });
-    }
-  },
-  items: [
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.bar_chart),
-      label: 'Statistik',
-    ),
-    BottomNavigationBarItem(
-      icon: Badge(
-        label: cartItemCount > 0 ? Text('$cartItemCount') : null,
-        isLabelVisible: cartItemCount > 0,
-        child: const Icon(Icons.store),
-      ),
-      label: 'Produk',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.person),
-      label: 'Profil',
-    ),
-  ],
-),
         floatingActionButton: selectedBottomIndex == 1 && cartItemCount > 0
             ? FloatingActionButton.extended(
                 onPressed: () {
@@ -506,7 +505,7 @@ class _KasirDashboardState extends State<KasirDashboard> {
       return AppBar(
         backgroundColor: primaryColor,
         elevation: 0,
-        leading:Container(),
+        leading: Container(),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
@@ -707,7 +706,7 @@ class _KasirDashboardState extends State<KasirDashboard> {
                   final p = filteredProducts[i];
                   return GestureDetector(
                     onTap: () => addToCart(p),
-                    onLongPress: widget.user.isAdmin
+                    onLongPress: (widget.user?.isAdmin ?? false)
                         ? () => _showAdminProductMenu(p)
                         : null,
                     child: Card(
@@ -715,44 +714,9 @@ class _KasirDashboardState extends State<KasirDashboard> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: _buildProductImage(p)),
-                          Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  p.namaProduk,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  formatRupiah(p.hargaJual),
-                                  style: const TextStyle(
-                                      color: primaryColor,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  '${p.satuan} | Stok: ${p.stok}',
-                                  style: const TextStyle(
-                                      color: Colors.grey, fontSize: 10),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   );
-                },
-              );
+                });
   }
 }
 

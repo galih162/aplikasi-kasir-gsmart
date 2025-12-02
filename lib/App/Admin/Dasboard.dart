@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:gs_mart_aplikasi/models/user.dart';
 import 'package:gs_mart_aplikasi/screens/home.dart';
 
 class DashboardPage extends StatefulWidget {
-  final dynamic user; // Sesuaikan tipe data dengan model User Anda
+  final UserModel user;
 
   const DashboardPage({Key? key, required this.user}) : super(key: key);
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
 }
+
 
 class _DashboardPageState extends State<DashboardPage> {
   

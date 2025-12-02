@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:gs_mart_aplikasi/database/service.dart';
 import 'package:gs_mart_aplikasi/screens/home.dart';
+import 'package:provider/provider.dart';
+import 'package:gs_mart_aplikasi/database/auth_provider.dart';
+import '../App/Admin/navigator.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,67 +17,78 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  Future<void> _login() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-
-    // Validasi input kosong
-    if (email.isEmpty || password.isEmpty) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email dan password harus diisi')),
-      );
-      return;
-    }
-
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-  
-    setState(() => _isLoading = true);
-
-  
-    try {
-      final success = await authProvider.login(email, password);
-
-      // Cek apakah widget masih mounted
-      if (!mounted) return;
-
-      // Reset loading state
-      setState(() => _isLoading = false);
-
-      // Cek hasil login
-      if (success) {
-        // Login berhasil - navigasi ke dashboard
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => KasirDashboard(
-              user: authProvider.currentUser!,
-            ),
-          ),
-        );
-      } else {
-        // Login gagal - tampilkan error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authProvider.errorMessage ?? 'Email atau password salah'),
-            backgroundColor: const Color.fromARGB(255, 216, 215, 215),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Terjadi kesalahan: $e'),
-          backgroundColor: Colors.red,
+Future<void> _showValidationDialog(List<String> errors) async {
+  if (!mounted) return;
+  await showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text("Kesalahan Input"),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: errors.map((e) => Text("• $e")).toList(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("OK"),
         ),
-      );
-    }
+      ],
+    ),
+  );
+}
+
+Future<void> _login() async {
+  final email = _emailController.text.trim();
+  final password = _passwordController.text;
+
+  List<String> errors = [];
+
+  // Validasi email
+  if (email.isEmpty) {
+    errors.add("Email wajib diisi");
+  } else if (!RegExp(
+          r"^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$")
+      .hasMatch(email)) {
+    errors.add("Format email tidak valid");
   }
+
+  // Validasi password
+  if (password.isEmpty) {
+    errors.add("Password wajib diisi");
+  }
+
+  if (errors.isNotEmpty) {
+    _showValidationDialog(errors);
+    return; // Hentikan login jika ada error
+  }
+
+  // Jika validasi lolos → lanjut login
+  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  setState(() => _isLoading = true);
+
+  final success = await authProvider.login(email, password);
+
+  if (!mounted) return;
+  setState(() => _isLoading = false);
+
+  if (success) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+          builder: (_) =>
+              KasirDashboard(user: authProvider.currentUser!)),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(authProvider.errorMessage ?? 'Login gagal'),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+}
 
   @override
   void dispose() {
@@ -92,7 +104,6 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Stack(
         children: [
           Container(color: const Color.fromARGB(255, 240, 20, 4)),
-          
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 40.0),
@@ -100,7 +111,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 100),
-                  
                   const Text(
                     'Log in',
                     style: TextStyle(
@@ -109,24 +119,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: Colors.white,
                     ),
                   ),
-                  
                   const SizedBox(height: 50),
-                  
                   _buildLoginTextField(
                     controller: _emailController,
                     labelText: 'Email',
                     prefixIcon: Icons.email,
                   ),
-                  
                   const SizedBox(height: 20),
-                  
                   _buildPasswordTextField(
                     controller: _passwordController,
                     labelText: 'Password',
                   ),
-                  
                   const SizedBox(height: 60),
-                  
                   SizedBox(
                     width: double.infinity,
                     height: 60,
@@ -175,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Container(
       height: 60,
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha((255 * 0.2).round()), 
+        color: Colors.white.withAlpha((255 * 0.2).round()),
         borderRadius: BorderRadius.circular(30),
       ),
       child: TextField(
@@ -187,11 +191,10 @@ class _LoginScreenState extends State<LoginScreen> {
           hintStyle: const TextStyle(color: Colors.white70),
           prefixIcon: Icon(prefixIcon, color: Colors.white),
           labelText: labelText,
-          labelStyle: const TextStyle(color: Colors.white), 
-          contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 20.0),
+          labelStyle: const TextStyle(color: Colors.white),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 8.0, horizontal: 20.0),
           border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
         ),
       ),
     );
@@ -204,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Container(
       height: 60,
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha((255 * 0.2).round()), 
+        color: Colors.white.withAlpha((255 * 0.2).round()),
         borderRadius: BorderRadius.circular(30),
       ),
       child: TextField(
@@ -217,17 +220,17 @@ class _LoginScreenState extends State<LoginScreen> {
           prefixIcon: const Icon(Icons.lock, color: Colors.white),
           labelText: labelText,
           labelStyle: const TextStyle(color: Colors.white),
-          contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 20.0),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 8.0, horizontal: 20.0),
           suffixIcon: IconButton(
             icon: Icon(
               _obscurePassword ? Icons.visibility_off : Icons.visibility,
               color: Colors.white,
             ),
-            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+            onPressed: () =>
+                setState(() => _obscurePassword = !_obscurePassword),
           ),
           border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
         ),
       ),
     );
