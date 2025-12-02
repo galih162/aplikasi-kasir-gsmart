@@ -54,6 +54,18 @@ class ProductModel {
     );
   }
 
+String get emoji {
+    final lower = namaProduk.toLowerCase();
+    if (lower.contains('tomat')) return '🍅';
+    if (lower.contains('cabai')) return '🌶️';
+    if (lower.contains('rambutan') || lower.contains('anggur')) return '🍇';
+    if (lower.contains('bawang')) return '🧅';
+    if (lower.contains('apel')) return '🍎';
+    if (lower.contains('sapi')) return '🥩';
+    if (lower.contains('ayam')) return '🍗';
+    return '📦';
+  }
+
   /// Convert model → Map (untuk insert/update Supabase)
   Map<String, dynamic> toJson() {
     return {

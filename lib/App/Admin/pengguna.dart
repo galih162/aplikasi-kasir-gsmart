@@ -355,11 +355,24 @@ class _PenggunaPageState extends State<PenggunaPage>
                   decoration: const InputDecoration(
                     labelText: 'Nama *',
                     border: OutlineInputBorder(),
+                    hintText: 'Contoh: Galih Satria',
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Nama wajib diisi';
                     }
+
+                    final trimmedValue = value.trim();
+
+                    // Hanya huruf dan spasi
+                    if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(trimmedValue)) {
+                      return 'Hanya boleh huruf dan spasi';
+                    }
+
+                    if (trimmedValue.length < 2) {
+                      return 'Minimal 2 karakter';
+                    }
+
                     return null;
                   },
                 ),
@@ -503,11 +516,24 @@ class _PenggunaPageState extends State<PenggunaPage>
                   decoration: const InputDecoration(
                     labelText: 'Nama *',
                     border: OutlineInputBorder(),
+                    hintText: 'Contoh: Galih Satria',
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Nama wajib diisi';
                     }
+
+                    final trimmedValue = value.trim();
+
+                    // Hanya huruf dan spasi
+                    if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(trimmedValue)) {
+                      return 'Hanya boleh huruf dan spasi';
+                    }
+
+                    if (trimmedValue.length < 2) {
+                      return 'Minimal 2 karakter';
+                    }
+
                     return null;
                   },
                 ),
@@ -689,11 +715,24 @@ class _PenggunaPageState extends State<PenggunaPage>
                     decoration: const InputDecoration(
                       labelText: 'Nama *',
                       border: OutlineInputBorder(),
+                      hintText: 'Contoh: Galih Satria',
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Nama wajib diisi';
                       }
+
+                      final trimmedValue = value.trim();
+
+                      // Hanya huruf dan spasi
+                      if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(trimmedValue)) {
+                        return 'Hanya boleh huruf dan spasi';
+                      }
+
+                      if (trimmedValue.length < 2) {
+                        return 'Minimal 2 karakter';
+                      }
+
                       return null;
                     },
                   ),
@@ -849,11 +888,24 @@ class _PenggunaPageState extends State<PenggunaPage>
                     decoration: const InputDecoration(
                       labelText: 'Nama *',
                       border: OutlineInputBorder(),
+                      hintText: 'Contoh: Galih Satria',
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Nama wajib diisi';
                       }
+
+                      final trimmedValue = value.trim();
+
+                      // Hanya huruf dan spasi
+                      if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(trimmedValue)) {
+                        return 'Hanya boleh huruf dan spasi';
+                      }
+
+                      if (trimmedValue.length < 2) {
+                        return 'Minimal 2 karakter';
+                      }
+
                       return null;
                     },
                   ),

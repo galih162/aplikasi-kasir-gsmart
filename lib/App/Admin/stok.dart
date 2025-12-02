@@ -240,8 +240,13 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   late TextEditingController _stokController;
   late TextEditingController _deskripsiController;
 
-  String _kategori = "";
-  String _satuan = "pcs";
+  String _selectedKategori = "Sayuran"; // nilai default
+  String _selectedSatuan = "kg"; // hanya kg
+
+  // List pilihan
+  final List<String> _kategoriList = ["Sayuran", "Buah", "Daging"];
+  final List<String> _satuanList = ["kg"];
+
   XFile? _selectedImage;
   Uint8List? _selectedImageBytes;
   bool _isLoading = false;
@@ -263,8 +268,6 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     _deskripsiController =
         TextEditingController(text: widget.product?.deskripsi ?? "");
 
-    _kategori = widget.product?.kategori ?? "";
-    _satuan = widget.product?.satuan ?? "pcs";
     _currentImageUrl = widget.product?.imageUrl;
   }
 
@@ -379,6 +382,8 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
         print('   Menggunakan URL existing: $_currentImageUrl');
       }
 
+      
+
       // Buat product object
       final product = ProductModel(
         id: widget.product?.id ?? '',
@@ -387,11 +392,11 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
         deskripsi: _deskripsiController.text.trim(),
         hargaBeli: double.parse(_hargaBeliController.text),
         hargaJual: double.parse(_hargaJualController.text),
-        kategori: _kategori,
-        satuan: _satuan,
+        kategori: _selectedKategori,
+        satuan: _selectedSatuan,
         createdAt: widget.product?.createdAt ?? DateTime.now(),
         updatedAt: DateTime.now(),
-        createdBy: widget.product?.createdBy,
+        createdBy: widget.productService.supabase.auth.currentUser?.id ?? widget.product?.createdBy,
         stokTersedia: int.parse(_stokController.text),
         stokMinimum: widget.product?.stokMinimum ?? 5,
         lastStockUpdate: DateTime.now(),
@@ -442,160 +447,253 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   }
 
   @override
- Widget build(BuildContext context) {
-  return AlertDialog(
-    title: Text(widget.product == null ? "Tambah Produk" : "Edit Produk"),
-    content: SingleChildScrollView(
-      child: Form(
-        key: _formKey,
-        autovalidateMode: AutovalidateMode.onUserInteraction, // ← TAMBAHKAN INI
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: _kodeProdukController,
-              decoration: const InputDecoration(labelText: "Kode Produk"),
-              validator: (v) => v!.isEmpty ? "Wajib diisi" : null,
-            ),
-            TextFormField(
-              controller: _namaProdukController,
-              decoration: const InputDecoration(labelText: "Nama Produk"),
-              validator: (v) => v!.isEmpty ? "Wajib diisi" : null,
-            ),
-            TextFormField(
-              controller: _hargaBeliController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: "Harga Beli",
-                hintText: "Contoh: 10000 atau 10000.50",
-                errorMaxLines: 2, // ← TAMBAHKAN INI
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.product == null ? "Tambah Produk" : "Edit Produk"),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          autovalidateMode:
+              AutovalidateMode.onUserInteraction, // ← TAMBAHKAN INI
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _kodeProdukController,
+                decoration: const InputDecoration(labelText: "Kode Produk"),
+                validator: (v) => v!.isEmpty ? "Wajib diisi" : null,
               ),
-              onChanged: (value) {
-                // Trigger validasi harga jual ketika harga beli berubah
-                if (_formKey.currentState != null && _hargaJualController.text.isNotEmpty) {
-                  _formKey.currentState!.validate();
-                }
-              },
-              validator: (v) {
-                if (v!.isEmpty) return "Wajib diisi";
-                // Regex yang lebih permisif untuk validasi real-time
-                if (!RegExp(r'^\d*\.?\d*$').hasMatch(v)) {
-                  return "Hanya boleh angka dan titik";
-                }
-                if (v == '.') return "Format angka salah";
-                
-                // Cek jika ada titik desimal, pastikan format benar
-                if (v.contains('.')) {
-                  final parts = v.split('.');
-                  if (parts.length > 2) return "Format angka salah";
-                  if (parts[1].length > 2) return "Maksimal 2 angka desimal";
-                }
-                
-                final value = double.tryParse(v);
-                if (value == null) return "Format angka salah";
-                if (value <= 0) return "Harus lebih besar dari 0";
-                return null;
-              },
-            ),
-            TextFormField(
-              controller: _hargaJualController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: "Harga Jual",
-                hintText: "Contoh: 15000 atau 15000.75",
-                errorMaxLines: 2, // ← TAMBAHKAN INI
+              TextFormField(
+                controller: _namaProdukController,
+                decoration: const InputDecoration(labelText: "Nama Produk"),
+                validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Nama wajib diisi';
+                      }
+
+                      final trimmedValue = value.trim();
+
+                      // Hanya huruf dan spasi
+                      if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(trimmedValue)) {
+                        return 'Hanya boleh huruf dan spasi';
+                      }
+                      return null;
+                    },
               ),
-              validator: (v) {
-                if (v!.isEmpty) return "Wajib diisi";
-                // Regex yang lebih permisif untuk validasi real-time
-                if (!RegExp(r'^\d*\.?\d*$').hasMatch(v)) {
-                  return "Hanya boleh angka dan titik";
-                }
-                if (v == '.') return "Format angka salah";
-                
-                // Cek jika ada titik desimal, pastikan format benar
-                if (v.contains('.')) {
-                  final parts = v.split('.');
-                  if (parts.length > 2) return "Format angka salah";
-                  if (parts[1].length > 2) return "Maksimal 2 angka desimal";
-                }
-                
-                final value = double.tryParse(v);
-                if (value == null) return "Format angka salah";
-                if (value <= 0) return "Harus lebih besar dari 0";
-                
-                // Validasi harga jual harus >= harga beli
-                final hargaBeliText = _hargaBeliController.text;
-                if (hargaBeliText.isNotEmpty) {
-                  final hargaBeli = double.tryParse(hargaBeliText);
-                  if (hargaBeli != null && value < hargaBeli) {
-                    return "Harga jual harus ≥ harga beli";
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Kategori *",
+                      style: TextStyle(fontSize: 14, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.withOpacity(0.5)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedKategori,
+                          isExpanded: true,
+                          icon: const Icon(Icons.arrow_drop_down,
+                              color: Colors.red),
+                          items: _kategoriList.map((String kategori) {
+                            return DropdownMenuItem<String>(
+                              value: kategori,
+                              child: Text(kategori),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                _selectedKategori = newValue;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+// ⭐ SATUAN (HANYA KG - DISABLED)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Satuan *",
+                      style: TextStyle(fontSize: 14, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.grey[100],
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.scale, color: Colors.blue),
+                          const SizedBox(width: 10),
+                          const Text("Satuan:", style: TextStyle(fontSize: 16)),
+                          const SizedBox(width: 10),
+                          Text(
+                            _selectedSatuan,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextFormField(
+                controller: _hargaBeliController,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: "Harga Beli",
+                  hintText: "Contoh: 10000 atau 10000.50",
+                  errorMaxLines: 2, // ← TAMBAHKAN INI
+                ),
+                onChanged: (value) {
+                  // Trigger validasi harga jual ketika harga beli berubah
+                  if (_formKey.currentState != null &&
+                      _hargaJualController.text.isNotEmpty) {
+                    _formKey.currentState!.validate();
                   }
-                }
-                
-                return null;
-              },
-            ),
-            TextFormField(
-              controller: _stokController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: "Stok Awal",
-                hintText: "Contoh: 100",
+                },
+                validator: (v) {
+                  if (v!.isEmpty) return "Wajib diisi";
+                  // Regex yang lebih permisif untuk validasi real-time
+                  if (!RegExp(r'^\d*\.?\d*$').hasMatch(v)) {
+                    return "Hanya boleh angka dan titik";
+                  }
+                  if (v == '.') return "Format angka salah";
+
+                  // Cek jika ada titik desimal, pastikan format benar
+                  if (v.contains('.')) {
+                    final parts = v.split('.');
+                    if (parts.length > 2) return "Format angka salah";
+                    if (parts[1].length > 2) return "Maksimal 2 angka desimal";
+                  }
+
+                  final value = double.tryParse(v);
+                  if (value == null) return "Format angka salah";
+                  if (value <= 0) return "Harus lebih besar dari 0";
+                  return null;
+                },
               ),
-              validator: (v) {
-                if (v!.isEmpty) return "Wajib diisi";
-                if (!RegExp(r'^\d*$').hasMatch(v)) { // ← Regex yang lebih permisif
-                  return "Hanya boleh angka";
-                }
-                if (v.isEmpty) return null; // Biarkan kosong sementara
-                
-                final value = int.tryParse(v);
-                if (value == null) return "Harus angka bulat";
-                if (value < 0) return "Tidak boleh negatif";
-                return null;
-              },
-            ),
-            TextFormField(
-              controller: _deskripsiController,
-              decoration: const InputDecoration(labelText: "Deskripsi"),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.image),
-              label: Text(
-                _selectedImage != null
-                    ? "Ganti Gambar"
-                    : (_currentImageUrl != null
-                        ? "Gambar Saat Ini"
-                        : "Pilih Gambar"),
+              TextFormField(
+                controller: _hargaJualController,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: "Harga Jual",
+                  hintText: "Contoh: 15000 atau 15000.75",
+                  errorMaxLines: 2, // ← TAMBAHKAN INI
+                ),
+                validator: (v) {
+                  if (v!.isEmpty) return "Wajib diisi";
+                  // Regex yang lebih permisif untuk validasi real-time
+                  if (!RegExp(r'^\d*\.?\d*$').hasMatch(v)) {
+                    return "Hanya boleh angka dan titik";
+                  }
+                  if (v == '.') return "Format angka salah";
+
+                  // Cek jika ada titik desimal, pastikan format benar
+                  if (v.contains('.')) {
+                    final parts = v.split('.');
+                    if (parts.length > 2) return "Format angka salah";
+                    if (parts[1].length > 2) return "Maksimal 2 angka desimal";
+                  }
+
+                  final value = double.tryParse(v);
+                  if (value == null) return "Format angka salah";
+                  if (value <= 0) return "Harus lebih besar dari 0";
+
+                  // Validasi harga jual harus >= harga beli
+                  final hargaBeliText = _hargaBeliController.text;
+                  if (hargaBeliText.isNotEmpty) {
+                    final hargaBeli = double.tryParse(hargaBeliText);
+                    if (hargaBeli != null && value < hargaBeli) {
+                      return "Harga jual harus ≥ harga beli";
+                    }
+                  }
+
+                  return null;
+                },
               ),
-              onPressed: _pickImage,
-            ),
-            const SizedBox(height: 8),
-            if (_selectedImage != null)
-              kIsWeb
-                  ? Image.memory(_selectedImageBytes!, height: 100)
-                  : Image.file(File(_selectedImage!.path), height: 100)
-            else if (_currentImageUrl != null)
-              Image.network(_currentImageUrl!, height: 100),
-          ],
+              TextFormField(
+                controller: _stokController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: "Stok Awal",
+                  hintText: "Contoh: 100",
+                ),
+                validator: (v) {
+                  if (v!.isEmpty) return "Wajib diisi";
+                  if (!RegExp(r'^\d*$').hasMatch(v)) {
+                    // ← Regex yang lebih permisif
+                    return "Hanya boleh angka";
+                  }
+                  if (v.isEmpty) return null; // Biarkan kosong sementara
+
+                  final value = int.tryParse(v);
+                  if (value == null) return "Harus angka bulat";
+                  if (value < 0) return "Tidak boleh negatif";
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: _deskripsiController,
+                decoration: const InputDecoration(labelText: "Deskripsi"),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.image),
+                label: Text(
+                  _selectedImage != null
+                      ? "Ganti Gambar"
+                      : (_currentImageUrl != null
+                          ? "Gambar Saat Ini"
+                          : "Pilih Gambar"),
+                ),
+                onPressed: _pickImage,
+              ),
+              const SizedBox(height: 8),
+              if (_selectedImage != null)
+                kIsWeb
+                    ? Image.memory(_selectedImageBytes!, height: 100)
+                    : Image.file(File(_selectedImage!.path), height: 100)
+              else if (_currentImageUrl != null)
+                Image.network(_currentImageUrl!, height: 100),
+            ],
+          ),
         ),
       ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text("Batal"),
-      ),
-      ElevatedButton(
-        onPressed: _isLoading ? null : _saveProduct,
-        child: _isLoading
-            ? const CircularProgressIndicator()
-            : const Text("Simpan"),
-      ),
-    ],
-  );
-}
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Batal"),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _saveProduct,
+          child: _isLoading
+              ? const CircularProgressIndicator()
+              : const Text("Simpan"),
+        ),
+      ],
+    );
+  }
 }

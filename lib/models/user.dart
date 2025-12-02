@@ -21,6 +21,4 @@ class UserModel {
   }
 
   get role => null;
-
-  bool? get isAdmin => null;
 }

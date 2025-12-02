@@ -7,7 +7,7 @@ import 'package:gs_mart_aplikasi/database/auth_provider.dart'; // AuthProvider y
 import 'package:gs_mart_aplikasi/database/cart_provider.dart';
 import 'package:gs_mart_aplikasi/database/supabase_config.dart'; 
 import 'screens/login_screen.dart';
-import 'screens/home.dart';
+import 'package:gs_mart_aplikasi/screens/home.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

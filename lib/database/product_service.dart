@@ -11,6 +11,8 @@ class ProductService {
   final SupabaseClient _client;
   ProductService() : _client = AppSupabase.client;
   SupabaseClient get client => _client;
+  final supabase = Supabase.instance.client; 
+  
 
   Future<List<ProductModel>> getAllProducts() async {
     try {
