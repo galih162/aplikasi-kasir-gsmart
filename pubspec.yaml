@@ -1,34 +1,35 @@
 name: gs_mart_aplikasi
 description: A new Flutter project.
 
-publish_to: 'none'
+publish_to: "none"
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
+  cached_network_image: ^3.4.1
+  file_picker: ^6.1.1
   flutter:
     sdk: flutter
-  provider: ^6.0.0
-  pdf: ^3.10.0
-  path_provider: ^2.0.0
-  open_file: ^3.3.0
-  supabase_flutter: ^2.5.0 
-  shared_preferences: ^2.2.2
   image_picker: ^1.2.1
-  file_picker: ^6.1.1 
-  path: ^1.9.1
   intl: ^0.18.1
-  cached_network_image: ^3.4.1
+  open_file: ^3.3.0
+  path: ^1.9.1
+  path_provider: ^2.0.0
+  pdf: ^3.10.0
+  provider: ^6.0.0
+  shared_preferences: ^2.2.2
+  supabase_flutter: ^2.5.0
 
 dev_dependencies:
+  connectivity_plus: ^7.0.0
+  flutter_lints: ^2.0.0
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
 
 flutter:
   uses-material-design: true
-  
+
   assets:
     - assets/images/gsmart.png

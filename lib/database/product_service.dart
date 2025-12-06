@@ -12,8 +12,6 @@ class ProductService {
   ProductService() : _client = AppSupabase.client;
   SupabaseClient get client => _client;
   final supabase = Supabase.instance.client; 
-  
-
   Future<List<ProductModel>> getAllProducts() async {
     try {
       final response = await _client
@@ -217,3 +215,4 @@ class ProductService {
 
   Future getAllProductsWithStock() async {}
 }
+// CRUD Produk selesai

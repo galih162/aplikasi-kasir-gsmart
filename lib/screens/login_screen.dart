@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:gs_mart_aplikasi/screens/home.dart';
 import 'package:provider/provider.dart';
 import 'package:gs_mart_aplikasi/database/auth_provider.dart';
-import '../App/Admin/navigator.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,57 +15,53 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  
 
-Future<void> _showValidationDialog(List<String> errors) async {
-  if (!mounted) return;
-  await showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text("Kesalahan Input"),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: errors.map((e) => Text("• $e")).toList(),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text("OK"),
+  String? _loginErrorMessage;
+
+  Future<void> _showValidationDialog(List<String> errors) async {
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Kesalahan Input"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: errors.map((e) => Text("• $e")).toList(),
         ),
-      ],
-    ),
-  );
-}
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
 
-Future<void> _login() async {
+  Future<void> _login() async {
   final email = _emailController.text.trim();
   final password = _passwordController.text;
 
+  // TAMBAHKAN INI: Reset error message
+  if (_loginErrorMessage != null) {
+    setState(() => _loginErrorMessage = null);
+  }
+
   List<String> errors = [];
-
-  // Validasi email
-  if (email.isEmpty) {
-    errors.add("Email wajib diisi");
-  } else if (!RegExp(
-          r"^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$")
-      .hasMatch(email)) {
-    errors.add("Format email tidak valid");
-  }
-
-  // Validasi password
-  if (password.isEmpty) {
-    errors.add("Password wajib diisi");
-  }
+  if (email.isEmpty) errors.add("Email wajib diisi");
+  if (password.isEmpty) errors.add("Password wajib diisi");
 
   if (errors.isNotEmpty) {
     _showValidationDialog(errors);
-    return; // Hentikan login jika ada error
+    return;
   }
 
-  // Jika validasi lolos → lanjut login
   final authProvider = Provider.of<AuthProvider>(context, listen: false);
   setState(() => _isLoading = true);
 
+  // Panggil login AuthProvider
   final success = await authProvider.login(email, password);
 
   if (!mounted) return;
@@ -76,13 +71,19 @@ Future<void> _login() async {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-          builder: (_) =>
-              KasirDashboard(user: authProvider.currentUser!)),
+        builder: (_) => KasirDashboard(user: authProvider.currentUser!),
+      ),
     );
   } else {
+    // PERBAIKAN INI: Simpan error message dari AuthProvider
+    setState(() {
+      _loginErrorMessage = authProvider.errorMessage ?? "Email atau password salah";
+    });
+    
+    // Juga tampilkan snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(authProvider.errorMessage ?? 'Login gagal'),
+        content: Text(_loginErrorMessage!),
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 3),
       ),
@@ -119,7 +120,13 @@ Future<void> _login() async {
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 50),
+                  
+                  // TAMBAHKAN INI: Widget untuk menampilkan error
+                  if (_loginErrorMessage != null) 
+                    _buildErrorWidget(),
+                  
+                  const SizedBox(height: 30),
+                  
                   _buildLoginTextField(
                     controller: _emailController,
                     labelText: 'Email',
@@ -163,6 +170,34 @@ Future<void> _login() async {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // TAMBAHKAN INI: Widget untuk menampilkan error
+  Widget _buildErrorWidget() {
+    return Container(
+      margin: const EdgeInsets.only(top: 15, bottom: 15),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.yellow, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _loginErrorMessage!,
+              style: const TextStyle(
+                color: Colors.yellow,
+                fontSize: 14,
               ),
             ),
           ),

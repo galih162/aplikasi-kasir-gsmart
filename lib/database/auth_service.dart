@@ -5,32 +5,52 @@ class SupabaseAuthService {
 
   /// LOGIN → Ambil auth user → Ambil data user di tabel public.users
   Future<Map<String, dynamic>?> login(String email, String password) async {
-    final response = await _supabase.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
+    try {
+      final response = await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
 
-    final authUser = response.user;
+      final authUser = response.user;
 
-    if (authUser == null) {
-      throw Exception("Login gagal: user tidak ditemukan");
+      if (authUser == null) {
+        throw Exception("Email atau password salah");
+      }
+
+      // Ambil data user dari tabel users
+      final userData = await _supabase
+          .from("users")
+          .select()
+          .eq("auth_id", authUser.id)
+          .maybeSingle();
+
+      if (userData == null) {
+        throw Exception("Akun tidak terdaftar pada database.");
+      }
+
+      return {
+        "auth_user": authUser,
+        "user_data": userData,
+      };
     }
 
-    // Cari data user di public.users berdasarkan auth_id
-    final userData = await _supabase
-        .from("users")
-        .select()
-        .eq("auth_id", authUser.id)
-        .maybeSingle();
+    // 🔥 Tangkap ERROR LOGIN dari Supabase
+    on AuthException catch (e) {
+      if (e.message.contains("Invalid login credentials")) {
+        throw Exception("Email atau password salah");
+      }
 
-    if (userData == null) {
-      throw Exception("Akun tidak terdaftar di tabel users.");
+      if (e.message.contains("Email not confirmed")) {
+        throw Exception("Email belum diverifikasi");
+      }
+
+      throw Exception(e.message);
     }
 
-    return {
-      "auth_user": authUser,
-      "user_data": userData,
-    };
+    // 🔥 Tangkap error lainnya
+    catch (e) {
+      throw Exception("Terjadi kesalahan: $e");
+    }
   }
 
   /// LOGOUT dari Supabase
